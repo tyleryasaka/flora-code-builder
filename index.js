@@ -97,12 +97,17 @@ function mainView (state, emit) {
         })}
       </div>
       <button onclick="${run}">Generate</button>
+      <button onclick="${clear}">Clear</button>
     </body>
   `
 
   function run (e) {
     const code = genCode(state)
     console.log(code)
+  }
+
+  function clear () {
+    emit('clear')
   }
 }
 
@@ -116,6 +121,14 @@ function globalStore (state, emitter) {
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
+    emitter.emit('render')
+  })
+
+  emitter.on('clear', function () {
+    state.brightness = 10
+    state.code = [
+      { action: 'setColor', value: 'red' }
+    ]
     emitter.emit('render')
   })
 

@@ -118,7 +118,7 @@ ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      
 function mainView (state, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml4 = document.createElement("body")
+      var nanohtml5 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
 nanohtml0.setAttribute("id", "brightness")
@@ -130,15 +130,22 @@ ac(nanohtml2, ["\n        ",arguments[1],"\n        ",arguments[2],"\n      "])
 var nanohtml3 = document.createElement("button")
 nanohtml3["onclick"] = arguments[3]
 ac(nanohtml3, ["Generate"])
-ac(nanohtml4, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n    "])
-      return nanohtml4
+var nanohtml4 = document.createElement("button")
+nanohtml4["onclick"] = arguments[4]
+ac(nanohtml4, ["Clear"])
+ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n    "])
+      return nanohtml5
     }(state.brightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], 0)
-        }),run))
+        }),run,clear))
 
   function run (e) {
     const code = genCode(state)
     console.log(code)
+  }
+
+  function clear () {
+    emit('clear')
   }
 }
 
@@ -152,6 +159,14 @@ function globalStore (state, emitter) {
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
+    emitter.emit('render')
+  })
+
+  emitter.on('clear', function () {
+    state.brightness = 10
+    state.code = [
+      { action: 'setColor', value: 'red' }
+    ]
     emitter.emit('render')
   })
 
