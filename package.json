@@ -1,0 +1,17 @@
+{
+  "name": "arduino-coder",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx browserify -t nanohtml index.js > bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tyler Yasaka",
+  "license": "CC0-1.0",
+  "dependencies": {
+    "browserify": "^16.3.0",
+    "choo": "^6.13.3",
+    "choo-devtools": "^3.0.0"
+  }
+}
