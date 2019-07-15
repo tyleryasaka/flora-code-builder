@@ -43,11 +43,11 @@ var nanohtml1 = document.createElement("div")
 nanohtml1.setAttribute("class", "codeItem")
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
-ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n        "])
-ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[4],"\n      "])
-ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[5],"\n    "])
+ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
+ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[5],"\n      "])
+ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
       return nanohtml2
-    }(setAction(indexArr),option(item, 'action', 'setColor'),option(item, 'action', 'delay'),option(item, 'action', 'if'),optionsFor(item, indexArr),renderInsert(indexArr, emit)))
+    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'if'),option(item, 'action', 'else if'),optionsFor(item, indexArr),renderInsert(indexArr, emit)))
 
   function remove () {
     emit('removeCodeItem', indexArr)
@@ -66,7 +66,7 @@ ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[5],"\n    "])
   }
 
   function optionsFor (item, indexArr) {
-    if (item.action === 'setColor') {
+    if (item.action === 'set color') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createDocumentFragment()
@@ -93,22 +93,22 @@ ac(nanohtml1, ["-"])
 ac(nanohtml2, [nanohtml0,"\n        ",nanohtml1,"\n      "])
       return nanohtml2
     }(setValue(indexArr),item.value,remove))
-    } else if (item.action === 'if') {
+    } else if (item.action === 'if' || item.action === 'else if') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml3 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
-ac(nanohtml0, ["\n          ",arguments[1],"\n        "])
+ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n          ",arguments[4],"\n          ",arguments[5],"\n        "])
 var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[2]
+nanohtml1["onclick"] = arguments[6]
 ac(nanohtml1, ["-"])
 var nanohtml2 = document.createElement("div")
 nanohtml2.setAttribute("class", "block if")
-ac(nanohtml2, ["\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
+ac(nanohtml2, ["\n          ",arguments[7],"\n          ",arguments[8],"\n        "])
 ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
       return nanohtml3
-    }(setValue(indexArr),option(item, 'value', 'touch'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
+    }(setValue(indexArr),option(item, 'value', 'touch'),option(item, 'value', 'color is red'),option(item, 'value', 'color is green'),option(item, 'value', 'color is blue'),option(item, 'value', 'color is none'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
             return renderCodeItem(emit, subItem, [].concat(indexArr, j))
           })))
     }
@@ -140,7 +140,7 @@ ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",
         }),run,clear))
 
   function run (e) {
-    const code = genCode(state)
+    const code = genCode(state.code)
     console.log(code)
   }
 
@@ -154,7 +154,7 @@ function globalStore (state, emitter) {
   const stateBright = localStorage.getItem('state-brightness')
   state.brightness = stateBright ? Number(stateBright) : 10
   state.code = stateCode ? JSON.parse(stateCode) : [
-    { action: 'setColor', value: 'red' }
+    { action: 'set color', value: 'red' }
   ]
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
@@ -165,7 +165,7 @@ function globalStore (state, emitter) {
   emitter.on('clear', function () {
     state.brightness = 10
     state.code = [
-      { action: 'setColor', value: 'red' }
+      { action: 'set color', value: 'red' }
     ]
     emitter.emit('render')
   })
@@ -188,16 +188,16 @@ function globalStore (state, emitter) {
       item.value = 'red'
     } else if (action === 'delay') {
       item.value = '1'
-    } else if (action === 'if') {
+    } else if (action === 'if' || action === 'else if') {
       item.value = 'touch'
-      item.items = [ {action: 'setColor', value: 'red' } ]
+      item.items = [ {action: 'set color', value: 'red' } ]
     }
     emitter.emit('render')
   })
 
   emitter.on('insertCodeItem', function (indexArr) {
     const { items, index } = getItem(indexArr)
-    items.splice(index + 1, 0, { action: 'setColor', value: 'red' })
+    items.splice(index + 1, 0, { action: 'set color', value: 'red' })
     emitter.emit('render')
   })
 
@@ -215,77 +215,113 @@ function globalStore (state, emitter) {
   })
 }
 
-function genCode (state) {
-  return `
-  // A basic everyday NeoPixel strip test program.
+function genCode (items) {
+  const loopCode = genCodeHelp(items)
+    return `
+#include <Adafruit_NeoPixel.h>
 
-  // NEOPIXEL BEST PRACTICES for most reliable operation:
-  // - Add 1000 uF CAPACITOR between NeoPixel strip's + and - connections.
-  // - MINIMIZE WIRING LENGTH between microcontroller board and first pixel.
-  // - NeoPixel strip's DATA-IN should pass through a 300-500 OHM RESISTOR.
-  // - AVOID connecting NeoPixels on a LIVE CIRCUIT. If you must, ALWAYS
-  //   connect GROUND (-) first, then +, then data.
-  // - When using a 3.3V microcontroller with a 5V-powered NeoPixel strip,
-  //   a LOGIC-LEVEL CONVERTER on the data line is STRONGLY RECOMMENDED.
-  // (Skipping these may work OK on your workbench but can fail in the field)
+// Which pin on the Arduino is connected to the NeoPixels?
+// On a Trinket or Gemma we suggest changing this to 1:
+#define LED_PIN    6
 
-  #include <Adafruit_NeoPixel.h>
-  #ifdef __AVR__
-   #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
-  #endif
+// How many NeoPixels are attached to the Arduino?
+#define LED_COUNT 1
 
-  // Which pin on the Arduino is connected to the NeoPixels?
-  // On a Trinket or Gemma we suggest changing this to 1:
-  #define LED_PIN    6
+Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+// Argument 1 = Number of pixels in NeoPixel strip
+// Argument 2 = Arduino pin number (most are valid)
+// Argument 3 = Pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 
-  // How many NeoPixels are attached to the Arduino?
-  #define LED_COUNT 60
+int analogPin = 9;
+int val = 0;  // variable to store the value read
+bool touchConsumed = false;
+int currentR = 0;
+int currentG = 0;
+int currentB = 0;
 
-  // Declare our NeoPixel strip object:
-  Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-  // Argument 1 = Number of pixels in NeoPixel strip
-  // Argument 2 = Arduino pin number (most are valid)
-  // Argument 3 = Pixel type flags, add together as needed:
-  //   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-  //   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-  //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-  //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-  //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+//uint32_t colors[] = {pixels.Color(255,   0,   0), pixels.Color(  0, 255,   0), pixels.Color(  0,   0, 255)};
 
+void setup() {
+  Serial.begin(9600);
 
-  // setup() function -- runs once at startup --------------------------------
+  pixels.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  pixels.clear();            // Turn OFF all pixels ASAP
+  pixels.setBrightness(10); // Set BRIGHTNESS to about 1/5 (max = 255)
+}
 
-  void setup() {
-    // These lines are specifically to support the Adafruit Trinket 5V 16 MHz.
-    // Any other board, you can remove this part (but no harm leaving it):
-  #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
-    clock_prescale_set(clock_div_1);
-  #endif
-    // END of Trinket-specific code.
-
-    strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-    strip.show();            // Turn OFF all pixels ASAP
-    strip.setBrightness(${state.brightness}); // Set BRIGHTNESS to about 1/5 (max = 255)
+void loop() {
+  val = analogRead(analogPin);
+  //  Serial.println(val);
+  bool touched = (val > 100) && !touchConsumed;
+  if (val < 100) {
+    touchConsumed = false;
   }
+  ${loopCode}
+}
 
+void setColor(int r, int g, int b) {
+    currentR = r;
+    currentG = g;
+    currentB = b;
+    pixels.setPixelColor(0, pixels.Color(r, g, b));         //  Set pixel's color (in RAM)
+    pixels.show();                          //  Update strip to match
+}
 
-  // loop() function -- runs repeatedly as long as board is on ---------------
+void clearPixel() {
+    currentR = 0;
+    currentG = 0;
+    currentB = 0;
+    pixels.clear();
+}
 
-  void loop() {
-    // Fill along the length of the strip in various colors...
-    setColor(strip.Color(255,   0,   0)); // Red
-    delay(1000);
-    setColor(strip.Color(  0, 255,   0)); // Green
-    delay(1000);
-    setColor(strip.Color(  0,   0, 255)); // Blue
-    delay(1000);
-  }
+bool checkColor(int r, int g, int b) {
+    return currentR == r && currentG == g && currentB == b;
+}
+    `
+}
 
-  void setColor(uint32_t color) {
-      strip.setPixelColor(0, color);         //  Set pixel's color (in RAM)
-      strip.show();                          //  Update strip to match
-  }
-  `
+function genCodeHelp (items) {
+  return items.map(item => {
+    if (item.action === 'if' || item.action === 'else if') {
+      let condition
+      if (item.value === 'touch') {
+        condition = 'touched'
+      } else if (item.value === 'color is red') {
+        condition = 'checkColor(255, 0, 0)'
+      } else if (item.value === 'color is green') {
+        condition = 'checkColor(0, 255, 0)'
+      } else if (item.value === 'color is blue') {
+        condition = 'checkColor(0, 0, 255)'
+      } else if (item.value === 'color is none') {
+        condition = 'checkColor(0, 0, 0)'
+      }
+      return `
+        ${item.action === 'if' ? 'if' : 'else if'} (${condition}) {
+          ${item.value === 'touch' ? 'touchConsumed = true;' : ''}
+          ${genCodeHelp(item.items)}
+        }
+      `
+    } else if (item.action === 'delay') {
+      const ms = item.value * 1000
+      return `
+        delay(${ms});
+      `
+    } else if (item.action === 'set color') {
+      let color
+      if (item.value === 'red') {
+        color = '255, 0, 0'
+      } else if (item.value === 'green') {
+        color = '0, 255, 0'
+      } else if (item.value === 'blue') {
+        color = '0, 0, 255'
+      }
+      return `
+        setColor(${color});
+      `
+    }
+  }).join('')
 }
 
 },{"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js":29,"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js":31,"choo":18,"choo-devtools":8}],2:[function(require,module,exports){
