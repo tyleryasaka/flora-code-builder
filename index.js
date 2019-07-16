@@ -140,7 +140,7 @@ function mainView (state, emit) {
         })}
       </div>
       <pre><code class="cpp">${state.prettyCode}</code></pre>
-      <form action="https://formspree.io/isolation-misplace-green@maildrop.cc" method="POST">
+      <form action="https://formspree.io/contact@tyleryasaka.me" method="POST">
         <input type="hidden" value="${state.prettyCode}">
         <button type="submit">Send code</button>
       </form>
