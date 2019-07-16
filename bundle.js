@@ -221,11 +221,12 @@ function globalStore (state, emitter) {
   state.brightness = stateBright ? Number(stateBright) : 10
   state.name = stateName || ''
   state.colors = [
-    { id: 'a', name: 'electric purple', value: '187, 0, 255' },
-    { id: 'b', name: 'carmine red', value: '255, 0, 55' },
-    { id: 'c', name: 'fluorescent orange', value: '255, 195, 0' },
-    { id: 'd', name: 'turquoise blue', value: '0, 255, 195' },
-    { id: 'e', name: 'spring green', value: '0, 255, 144' }
+    { id: 'a', name: 'red', value: '255, 0, 0' },
+    { id: 'b', name: 'orange', value: '255, 89, 0' },
+    { id: 'c', name: 'yellow', value: '255, 255, 0' },
+    { id: 'd', name: 'green', value: '0, 255, 0' },
+    { id: 'e', name: 'blue', value: '0, 0, 255' },
+    { id: 'f', name: 'purple', value: '221, 0, 255' }
   ]
   state.code = stateCode ? JSON.parse(stateCode) : [
     { action: 'set color', value: 'a' }
