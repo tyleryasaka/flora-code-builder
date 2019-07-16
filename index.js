@@ -129,6 +129,8 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
 function mainView (state, emit) {
   return html`
     <body>
+      Your name: <input type="text" id="name" value="${state.name}" oninput="${setName}" />
+      <br>
       Brightness: <input type="number" id="brightness" min="1" max="255" value="${state.brightness}" oninput="${setBrightness}" />
       <br>
       <div id="editor">
@@ -148,13 +150,19 @@ function mainView (state, emit) {
   function setBrightness (e) {
     emit('updateBrightness', e.target.value)
   }
+
+  function setName (e) {
+    emit('updateName', e.target.value)
+  }
 }
 
 function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
   const statePretty = localStorage.getItem('state-pretty')
+  const stateName = localStorage.getItem('state-name')
   state.brightness = stateBright ? Number(stateBright) : 10
+  state.name = stateName || ''
   state.colors = [
     { id: 'a', name: 'electric purple', value: '187, 0, 255' },
     { id: 'b', name: 'carmine red', value: '255, 0, 55' },
@@ -173,6 +181,11 @@ function globalStore (state, emitter) {
 
   emitter.on('updateBrightness', function (value) {
     state.brightness = value
+    emitter.emit('render')
+  })
+
+  emitter.on('updateName', function (value) {
+    state.name = value
     emitter.emit('render')
   })
 
@@ -244,10 +257,11 @@ function globalStore (state, emitter) {
   emitter.on('render', function () {
     const stateCode = JSON.stringify(state.code)
     const brightness = state.brightness
-    state.prettyCode = genCode(state.code, state.colors, state.brightness)
+    state.prettyCode = genCode(state.code, state.colors, state.brightness, state.name)
     localStorage.setItem('state-code', stateCode)
     localStorage.setItem('state-brightness', brightness)
     localStorage.setItem('state-pretty', state.prettyCode)
+    localStorage.setItem('state-name', state.name)
     setTimeout(prettify, 0)
   })
 }
@@ -259,10 +273,13 @@ function prettify () {
   })
 }
 
-function genCode (items, colors, brightness) {
+function genCode (items, colors, brightness, name) {
   const seed = { value: 0 }
   const loopCode = genCodeHelp(items, colors, seed)
-  return `#include <Adafruit_NeoPixel.h>
+  return `/*------------------------------
+  Code by ${name}
+------------------------------*/
+#include <Adafruit_NeoPixel.h>
 #define LED_PIN    6
 #define LED_COUNT 1
 

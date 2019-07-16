@@ -160,26 +160,32 @@ ac(nanohtml2, [nanohtml0,"\n        ",arguments[5],"\n        ",nanohtml1,"\n   
 function mainView (state, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml5 = document.createElement("body")
+      var nanohtml7 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
-nanohtml0.setAttribute("type", "number")
-nanohtml0.setAttribute("id", "brightness")
-nanohtml0.setAttribute("min", "1")
-nanohtml0.setAttribute("max", "255")
+nanohtml0.setAttribute("type", "text")
+nanohtml0.setAttribute("id", "name")
 nanohtml0.setAttribute("value", arguments[0])
 nanohtml0["oninput"] = arguments[1]
 var nanohtml1 = document.createElement("br")
-var nanohtml2 = document.createElement("div")
-nanohtml2.setAttribute("id", "editor")
-ac(nanohtml2, ["\n        ",arguments[2],"\n        ",arguments[3],"\n      "])
-var nanohtml4 = document.createElement("pre")
-var nanohtml3 = document.createElement("code")
-nanohtml3.setAttribute("class", "cpp")
-ac(nanohtml3, [arguments[4]])
-ac(nanohtml4, [nanohtml3])
-ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml4,"\n    "])
-      return nanohtml5
-    }(state.brightness,setBrightness,renderInsert([-1], emit),state.code.map((item, i) => {
+var nanohtml2 = document.createElement("input")
+nanohtml2.setAttribute("type", "number")
+nanohtml2.setAttribute("id", "brightness")
+nanohtml2.setAttribute("min", "1")
+nanohtml2.setAttribute("max", "255")
+nanohtml2.setAttribute("value", arguments[2])
+nanohtml2["oninput"] = arguments[3]
+var nanohtml3 = document.createElement("br")
+var nanohtml4 = document.createElement("div")
+nanohtml4.setAttribute("id", "editor")
+ac(nanohtml4, ["\n        ",arguments[4],"\n        ",arguments[5],"\n      "])
+var nanohtml6 = document.createElement("pre")
+var nanohtml5 = document.createElement("code")
+nanohtml5.setAttribute("class", "cpp")
+ac(nanohtml5, [arguments[6]])
+ac(nanohtml6, [nanohtml5])
+ac(nanohtml7, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Brightness: ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n      ",nanohtml6,"\n    "])
+      return nanohtml7
+    }(state.name,setName,state.brightness,setBrightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
         }),state.prettyCode))
 
@@ -190,13 +196,19 @@ ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",
   function setBrightness (e) {
     emit('updateBrightness', e.target.value)
   }
+
+  function setName (e) {
+    emit('updateName', e.target.value)
+  }
 }
 
 function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
   const statePretty = localStorage.getItem('state-pretty')
+  const stateName = localStorage.getItem('state-name')
   state.brightness = stateBright ? Number(stateBright) : 10
+  state.name = stateName || ''
   state.colors = [
     { id: 'a', name: 'electric purple', value: '187, 0, 255' },
     { id: 'b', name: 'carmine red', value: '255, 0, 55' },
@@ -215,6 +227,11 @@ function globalStore (state, emitter) {
 
   emitter.on('updateBrightness', function (value) {
     state.brightness = value
+    emitter.emit('render')
+  })
+
+  emitter.on('updateName', function (value) {
+    state.name = value
     emitter.emit('render')
   })
 
@@ -286,10 +303,11 @@ function globalStore (state, emitter) {
   emitter.on('render', function () {
     const stateCode = JSON.stringify(state.code)
     const brightness = state.brightness
-    state.prettyCode = genCode(state.code, state.colors, state.brightness)
+    state.prettyCode = genCode(state.code, state.colors, state.brightness, state.name)
     localStorage.setItem('state-code', stateCode)
     localStorage.setItem('state-brightness', brightness)
     localStorage.setItem('state-pretty', state.prettyCode)
+    localStorage.setItem('state-name', state.name)
     setTimeout(prettify, 0)
   })
 }
@@ -301,10 +319,13 @@ function prettify () {
   })
 }
 
-function genCode (items, colors, brightness) {
+function genCode (items, colors, brightness, name) {
   const seed = { value: 0 }
   const loopCode = genCodeHelp(items, colors, seed)
-  return `#include <Adafruit_NeoPixel.h>
+  return `/*------------------------------
+  Code by ${name}
+------------------------------*/
+#include <Adafruit_NeoPixel.h>
 #define LED_PIN    6
 #define LED_COUNT 1
 
