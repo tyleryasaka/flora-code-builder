@@ -140,6 +140,7 @@ function mainView (state, emit) {
         })}
       </div>
       <pre><code class="cpp">${state.prettyCode}</code></pre>
+      <button onclick="${sendCode}">Send code</button>
     </body>
   `
 
@@ -153,6 +154,12 @@ function mainView (state, emit) {
 
   function setName (e) {
     emit('updateName', e.target.value)
+  }
+
+  function sendCode () {
+    var xhttp = new XMLHttpRequest()
+    xhttp.open("POST", "https://formspree.io/isolation-misplace-green@maildrop.cc", true)
+    xhttp.send(`code=${state.prettyCode}`)
   }
 }
 
@@ -268,7 +275,6 @@ function globalStore (state, emitter) {
 
 function prettify () {
   document.querySelectorAll('pre code').forEach((block) => {
-    console.log('block', hljs, block)
     hljs.highlightBlock(block)
   })
 }
@@ -280,7 +286,7 @@ function genCode (items, colors, brightness, name) {
   Code by ${name}
 ------------------------------*/
 #include <Adafruit_NeoPixel.h>
-#define LED_PIN    6
+#define LED_PIN 6
 #define LED_COUNT 1
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);

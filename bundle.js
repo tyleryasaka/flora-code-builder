@@ -160,7 +160,7 @@ ac(nanohtml2, [nanohtml0,"\n        ",arguments[5],"\n        ",nanohtml1,"\n   
 function mainView (state, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml7 = document.createElement("body")
+      var nanohtml8 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "text")
 nanohtml0.setAttribute("id", "name")
@@ -183,11 +183,14 @@ var nanohtml5 = document.createElement("code")
 nanohtml5.setAttribute("class", "cpp")
 ac(nanohtml5, [arguments[6]])
 ac(nanohtml6, [nanohtml5])
-ac(nanohtml7, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Brightness: ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n      ",nanohtml6,"\n    "])
-      return nanohtml7
+var nanohtml7 = document.createElement("button")
+nanohtml7["onclick"] = arguments[7]
+ac(nanohtml7, ["Send code"])
+ac(nanohtml8, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Brightness: ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n      ",nanohtml6,"\n      ",nanohtml7,"\n    "])
+      return nanohtml8
     }(state.name,setName,state.brightness,setBrightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
-        }),state.prettyCode))
+        }),state.prettyCode,sendCode))
 
   function clear () {
     emit('clear')
@@ -199,6 +202,12 @@ ac(nanohtml7, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Bri
 
   function setName (e) {
     emit('updateName', e.target.value)
+  }
+
+  function sendCode () {
+    var xhttp = new XMLHttpRequest()
+    xhttp.open("POST", "https://formspree.io/isolation-misplace-green@maildrop.cc", true)
+    xhttp.send(`code=${state.prettyCode}`)
   }
 }
 
@@ -314,7 +323,6 @@ function globalStore (state, emitter) {
 
 function prettify () {
   document.querySelectorAll('pre code').forEach((block) => {
-    console.log('block', hljs, block)
     hljs.highlightBlock(block)
   })
 }
@@ -326,7 +334,7 @@ function genCode (items, colors, brightness, name) {
   Code by ${name}
 ------------------------------*/
 #include <Adafruit_NeoPixel.h>
-#define LED_PIN    6
+#define LED_PIN 6
 #define LED_COUNT 1
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
