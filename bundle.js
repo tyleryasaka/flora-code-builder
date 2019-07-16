@@ -12,8 +12,9 @@ app.mount('body')
 function renderInsert (indexArr, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml0 = document.createElement("button")
+      var nanohtml0 = document.createElement("div")
 nanohtml0["onclick"] = arguments[0]
+nanohtml0.setAttribute("class", "insert")
 ac(nanohtml0, ["+"])
       return nanohtml0
     }(insert))
@@ -21,6 +22,17 @@ ac(nanohtml0, ["+"])
   function insert () {
     emit('insertCodeItem', indexArr)
   }
+}
+
+function renderRemove (fn) {
+  return (function () {
+      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var nanohtml0 = document.createElement("div")
+nanohtml0["onclick"] = arguments[0]
+nanohtml0.setAttribute("class", "remove")
+ac(nanohtml0, ["x"])
+      return nanohtml0
+    }(fn))
 }
 
 function option (item, prop, val, valLabel) {
@@ -47,7 +59,7 @@ ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n      
 ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[5],"\n      "])
 ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
       return nanohtml2
-    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'repeat'),'',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
+    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'pause'),option(item, 'action', 'repeat'),'',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
 
   function remove () {
     emit('removeCodeItem', indexArr)
@@ -87,66 +99,54 @@ ac(nanohtml0, ["\n        ",arguments[1],"\n      "])
     if (item.action === 'set color') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml1 = document.createDocumentFragment()
-var nanohtml0 = document.createElement("button")
-nanohtml0["onclick"] = arguments[0]
-ac(nanohtml0, ["-"])
-ac(nanohtml1, [arguments[1],"\n        ",nanohtml0,"\n      "])
-      return nanohtml1
-    }(remove,renderColorSelect(item, indexArr, 'value', setValue)))
-    } else if (item.action === 'delay') {
+      var nanohtml0 = document.createDocumentFragment()
+ac(nanohtml0, [arguments[0],"\n        ",arguments[1],"\n      "])
+      return nanohtml0
+    }(renderColorSelect(item, indexArr, 'value', setValue),renderRemove(remove)))
+    } else if (item.action === 'pause') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml2 = document.createDocumentFragment()
+      var nanohtml1 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
 nanohtml0["oninput"] = arguments[0]
 nanohtml0.setAttribute("value", arguments[1])
-var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[2]
-ac(nanohtml1, ["-"])
-ac(nanohtml2, [nanohtml0,"\n        ",nanohtml1,"\n      "])
-      return nanohtml2
-    }(setValue(indexArr),item.value,remove))
+ac(nanohtml1, [nanohtml0,"\n        ",arguments[2],"\n      "])
+      return nanohtml1
+    }(setValue(indexArr),item.value,renderRemove(remove)))
     } else if (item.action === 'if' || item.action === 'else if') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml3 = document.createDocumentFragment()
+      var nanohtml2 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
 ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n        "])
-var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[4]
-ac(nanohtml1, ["-"])
-var nanohtml2 = document.createElement("div")
-nanohtml2.setAttribute("class", "block if")
-ac(nanohtml2, ["\n          ",arguments[5],"\n          ",arguments[6],"\n        "])
-ac(nanohtml3, [nanohtml0,"\n        ",arguments[7],"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
-      return nanohtml3
-    }(setValue(indexArr),option(item, 'value', 'color is'),option(item, 'value', 'light is off'),option(item, 'value', 'light is on'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
+var nanohtml1 = document.createElement("div")
+nanohtml1.setAttribute("class", "block if")
+ac(nanohtml1, ["\n          ",arguments[4],"\n          ",arguments[5],"\n        "])
+ac(nanohtml2, [nanohtml0,"\n        ",arguments[6],"\n        ",arguments[7],"\n        ",nanohtml1,"\n      "])
+      return nanohtml2
+    }(setValue(indexArr),option(item, 'value', 'color is'),option(item, 'value', 'light is off'),option(item, 'value', 'light is on'),renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
             return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
-          }),item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : ''))
+          }),item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : '',renderRemove(remove)))
     } else if (item.action === 'repeat') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml3 = document.createDocumentFragment()
+      var nanohtml2 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
 nanohtml0.setAttribute("step", "1")
 nanohtml0.setAttribute("min", "1")
 nanohtml0["oninput"] = arguments[0]
 nanohtml0.setAttribute("value", arguments[1])
-var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[2]
-ac(nanohtml1, ["-"])
-var nanohtml2 = document.createElement("div")
-nanohtml2.setAttribute("class", "block repeat")
-ac(nanohtml2, ["\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
-ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
-      return nanohtml3
-    }(setValue(indexArr),item.value,remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
+var nanohtml1 = document.createElement("div")
+nanohtml1.setAttribute("class", "block repeat level" + arguments[2])
+ac(nanohtml1, ["\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
+ac(nanohtml2, [nanohtml0,"\n        ",arguments[5],"\n        ",nanohtml1,"\n      "])
+      return nanohtml2
+    }(setValue(indexArr),item.value,indexArr.length % 2,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
             return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
-          })))
+          }),renderRemove(remove)))
     }
   }
 }
@@ -154,10 +154,12 @@ ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      
 function mainView (state, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml5 = document.createElement("body")
+      var nanohtml4 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
 nanohtml0.setAttribute("id", "brightness")
+nanohtml0.setAttribute("min", "1")
+nanohtml0.setAttribute("max", "255")
 nanohtml0.setAttribute("value", arguments[0])
 var nanohtml1 = document.createElement("br")
 var nanohtml2 = document.createElement("div")
@@ -165,15 +167,12 @@ nanohtml2.setAttribute("id", "editor")
 ac(nanohtml2, ["\n        ",arguments[1],"\n        ",arguments[2],"\n      "])
 var nanohtml3 = document.createElement("button")
 nanohtml3["onclick"] = arguments[3]
-ac(nanohtml3, ["Generate"])
-var nanohtml4 = document.createElement("button")
-nanohtml4["onclick"] = arguments[4]
-ac(nanohtml4, ["Clear"])
-ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n    "])
-      return nanohtml5
+ac(nanohtml3, ["Generate code"])
+ac(nanohtml4, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n    "])
+      return nanohtml4
     }(state.brightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
-        }),run,clear))
+        }),run))
 
   function run (e) {
     const code = genCode(state.code, state.colors)
@@ -238,7 +237,7 @@ function globalStore (state, emitter) {
     item.action = action
     if (action === 'set color') {
       item.value = 'a'
-    } else if (action === 'delay') {
+    } else if (action === 'pause') {
       item.value = '1'
     } else if (action === 'if' || action === 'else if') {
       item.value = 'color is'
@@ -366,7 +365,7 @@ function genCodeHelp (items, colors, seed) {
           ${genCodeHelp(item.items, colors, seed)}
         }
       `
-    } else if (item.action === 'delay') {
+    } else if (item.action === 'pause') {
       const ms = item.value * 1000
       return `
         delay(${ms});

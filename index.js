@@ -10,12 +10,16 @@ app.mount('body')
 
 function renderInsert (indexArr, emit) {
   return html`
-    <button onclick=${insert}>+</button>
+    <div class="insert" onclick=${insert}>+</div>
   `
 
   function insert () {
     emit('insertCodeItem', indexArr)
   }
+}
+
+function renderRemove (fn) {
+  return html`<div class="remove" onclick=${fn}>x</div>`
 }
 
 function option (item, prop, val, valLabel) {
@@ -28,7 +32,7 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
       <div class="codeItem">
         <select oninput="${setAction(indexArr)}">
           ${option(item, 'action', 'set color')}
-          ${option(item, 'action', 'delay')}
+          ${option(item, 'action', 'pause')}
           ${option(item, 'action', 'repeat')}
           ${/*
             ${option(item, 'action', 'if')}
@@ -77,12 +81,12 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
     if (item.action === 'set color') {
       return html`
         ${renderColorSelect(item, indexArr, 'value', setValue)}
-        <button onclick=${remove}>-</button>
+        ${renderRemove(remove)}
       `
-    } else if (item.action === 'delay') {
+    } else if (item.action === 'pause') {
       return html`
         <input type="number" oninput="${setValue(indexArr)}" value=${item.value}>
-        <button onclick=${remove}>-</button>
+        ${renderRemove(remove)}
       `
     } else if (item.action === 'if' || item.action === 'else if') {
       return html`
@@ -92,7 +96,7 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
           ${option(item, 'value', 'light is on')}
         </select>
         ${item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : ''}
-        <button onclick=${remove}>-</button>
+        ${renderRemove(remove)}
         <div class="block if">
           ${renderInsert([].concat(indexArr, -1), emit)}
           ${item.items.map((subItem, j) => {
@@ -103,8 +107,8 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
     } else if (item.action === 'repeat') {
       return html`
         <input type="number" step="1" min="1" oninput="${setValue(indexArr)}" value=${item.value}>
-        <button onclick=${remove}>-</button>
-        <div class="block repeat">
+        ${renderRemove(remove)}
+        <div class="block repeat level${indexArr.length % 2}">
           ${renderInsert([].concat(indexArr, -1), emit)}
           ${item.items.map((subItem, j) => {
             return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
@@ -118,7 +122,7 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
 function mainView (state, emit) {
   return html`
     <body>
-      Brightness: <input type="number" id="brightness" value="${state.brightness}" />
+      Brightness: <input type="number" id="brightness" min="1" max="255" value="${state.brightness}" />
       <br>
       <div id="editor">
         ${renderInsert([-1], emit)}
@@ -126,8 +130,7 @@ function mainView (state, emit) {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
         })}
       </div>
-      <button onclick="${run}">Generate</button>
-      <button onclick="${clear}">Clear</button>
+      <button onclick="${run}">Generate code</button>
     </body>
   `
 
@@ -194,7 +197,7 @@ function globalStore (state, emitter) {
     item.action = action
     if (action === 'set color') {
       item.value = 'a'
-    } else if (action === 'delay') {
+    } else if (action === 'pause') {
       item.value = '1'
     } else if (action === 'if' || action === 'else if') {
       item.value = 'color is'
@@ -322,7 +325,7 @@ function genCodeHelp (items, colors, seed) {
           ${genCodeHelp(item.items, colors, seed)}
         }
       `
-    } else if (item.action === 'delay') {
+    } else if (item.action === 'pause') {
       const ms = item.value * 1000
       return `
         delay(${ms});
