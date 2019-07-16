@@ -1,3 +1,7 @@
+var hljs = require('highlight.js/lib/highlight')
+var cpp = require('highlight.js/lib/languages/cpp')
+hljs.registerLanguage('cpp', cpp)
+
 var html = require('choo/html')
 var devtools = require('choo-devtools')
 var choo = require('choo')
@@ -122,7 +126,7 @@ function renderCodeItem (emit, item, indexArr, prevItem, colors) {
 function mainView (state, emit) {
   return html`
     <body>
-      Brightness: <input type="number" id="brightness" min="1" max="255" value="${state.brightness}" />
+      Brightness: <input type="number" id="brightness" min="1" max="255" value="${state.brightness}" oninput="${setBrightness}" />
       <br>
       <div id="editor">
         ${renderInsert([-1], emit)}
@@ -130,23 +134,23 @@ function mainView (state, emit) {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
         })}
       </div>
-      <button onclick="${run}">Generate code</button>
+      <pre><code class="cpp">${state.prettyCode}</code></pre>
     </body>
   `
 
-  function run (e) {
-    const code = genCode(state.code, state.colors)
-    console.log(code)
-  }
-
   function clear () {
     emit('clear')
+  }
+
+  function setBrightness (e) {
+    emit('updateBrightness', e.target.value)
   }
 }
 
 function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
+  const statePretty = localStorage.getItem('state-pretty')
   state.brightness = stateBright ? Number(stateBright) : 10
   state.colors = [
     { id: 'a', name: 'electric purple', value: '187, 0, 255' },
@@ -158,6 +162,17 @@ function globalStore (state, emitter) {
   state.code = stateCode ? JSON.parse(stateCode) : [
     { action: 'set color', value: 'a' }
   ]
+  state.prettyCode = statePretty || ''
+
+  emitter.on('DOMContentLoaded', function() {
+    prettify()
+  })
+
+  emitter.on('updateBrightness', function (value) {
+    state.brightness = value
+    emitter.emit('render')
+  })
+
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
@@ -226,84 +241,69 @@ function globalStore (state, emitter) {
   emitter.on('render', function () {
     const stateCode = JSON.stringify(state.code)
     const brightness = state.brightness
+    state.prettyCode = genCode(state.code, state.colors, state.brightness)
     localStorage.setItem('state-code', stateCode)
     localStorage.setItem('state-brightness', brightness)
+    localStorage.setItem('state-pretty', state.prettyCode)
+    setTimeout(prettify, 0)
   })
 }
 
-function genCode (items, colors) {
+function prettify () {
+  document.querySelectorAll('pre code').forEach((block) => {
+    console.log('block', hljs, block)
+    hljs.highlightBlock(block)
+  })
+}
+
+function genCode (items, colors, brightness) {
   const seed = { value: 0 }
   const loopCode = genCodeHelp(items, colors, seed)
-    return `
-#include <Adafruit_NeoPixel.h>
-
-// Which pin on the Arduino is connected to the NeoPixels?
-// On a Trinket or Gemma we suggest changing this to 1:
+    return `#include <Adafruit_NeoPixel.h>
 #define LED_PIN    6
-
-// How many NeoPixels are attached to the Arduino?
 #define LED_COUNT 1
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-// Argument 1 = Number of pixels in NeoPixel strip
-// Argument 2 = Arduino pin number (most are valid)
-// Argument 3 = Pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-
 int analogPin = 9;
-int val = 0;  // variable to store the value read
-bool touchConsumed = false;
 int currentR = 0;
 int currentG = 0;
 int currentB = 0;
-int touchCapThresholdTop = 150;
-int touchCapThresholdBottom = 50;
-int touchTimeout = 500;
-unsigned long lastTouched;
-
-//uint32_t colors[] = {pixels.Color(255,   0,   0), pixels.Color(  0, 255,   0), pixels.Color(  0,   0, 255)};
 
 void setup() {
   Serial.begin(9600);
-
-  pixels.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  pixels.clear();            // Turn OFF all pixels ASAP
-  pixels.setBrightness(10); // Set BRIGHTNESS to about 1/5 (max = 255)
+  pixels.begin();
+  pixels.clear();
+  pixels.setBrightness(${brightness});
 }
 
 void loop() {
-  val = analogRead(analogPin);
-  //  Serial.println(val);
-  bool touched = (val > touchCapThresholdTop) && !touchConsumed && (millis() - touchTimeout) > lastTouched;
-  if (val < touchCapThresholdBottom) {
-    touchConsumed = false;
-  }
-  ${loopCode}
-}
+${loopCode}}
 
 void setColor(int r, int g, int b) {
-    currentR = r;
-    currentG = g;
-    currentB = b;
-    pixels.setPixelColor(0, pixels.Color(r, g, b));         //  Set pixel's color (in RAM)
-    pixels.show();                          //  Update strip to match
+  currentR = r;
+  currentG = g;
+  currentB = b;
+  pixels.setPixelColor(0, pixels.Color(r, g, b));
+  pixels.show();
 }
 
 void clearPixel() {
-    currentR = 0;
-    currentG = 0;
-    currentB = 0;
-    pixels.clear();
+  currentR = 0;
+  currentG = 0;
+  currentB = 0;
+  pixels.clear();
 }
 
 bool checkColor(int r, int g, int b) {
-    return currentR == r && currentG == g && currentB == b;
-}
-    `
+  return currentR == r && currentG == g && currentB == b;
+}`
 }
 
-function genCodeHelp (items, colors, seed) {
+function genCodeHelp (items, colors, seed, level = 1) {
+  let tabs = ''
+  for (let i = 0; i < level; i++) {
+    tabs = tabs + '  '
+  }
   return items.map(item => {
     if (item.action === 'if' || item.action === 'else if') {
       let condition
@@ -322,22 +322,17 @@ function genCodeHelp (items, colors, seed) {
       return `
         ${item.action === 'if' ? 'if' : 'else if'} (${condition}) {
           ${item.value === 'touch' ? 'touchConsumed = true; lastTouched = millis();' : ''}
-          ${genCodeHelp(item.items, colors, seed)}
+          ${genCodeHelp(item.items, colors, seed, level + 1)}
         }
       `
     } else if (item.action === 'pause') {
       const ms = item.value * 1000
-      return `
-        delay(${ms});
-      `
+      return `${tabs}delay(${ms});\n`
     } else if (item.action === 'set color') {
       const color = colors.filter(c => {
-        console.log(c.id, item.value)
         return c.id === item.value
       })[0].value
-      return `
-        setColor(${color});
-      `
+      return `${tabs}setColor(${color});\n`
     } else if (item.action === 'repeat') {
       const count = Number(item.value)
       let counter = 'i'
@@ -345,11 +340,9 @@ function genCodeHelp (items, colors, seed) {
         counter = `${counter}i`
       }
       seed.value++
-      return `
-        for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
-          ${genCodeHelp(item.items, colors, seed)}
-        }
-      `
+      return `${tabs}for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
+${genCodeHelp(item.items, colors, seed, level + 1)}${tabs}}
+`
     }
   }).join('')
 }

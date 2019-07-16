@@ -12,6 +12,10 @@
   "dependencies": {
     "browserify": "^16.3.0",
     "choo": "^6.13.3",
-    "choo-devtools": "^3.0.0"
+    "choo-devtools": "^3.0.0",
+    "highlight.js": "^9.15.8"
+  },
+  "devDependencies": {
+    "browserify-css": "^0.15.0"
   }
 }

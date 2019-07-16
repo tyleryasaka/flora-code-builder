@@ -1,4 +1,8 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+var hljs = require('highlight.js/lib/highlight')
+var cpp = require('highlight.js/lib/languages/cpp')
+hljs.registerLanguage('cpp', cpp)
+
 var html = {}
 var devtools = require('choo-devtools')
 var choo = require('choo')
@@ -154,39 +158,42 @@ ac(nanohtml2, [nanohtml0,"\n        ",arguments[5],"\n        ",nanohtml1,"\n   
 function mainView (state, emit) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml4 = document.createElement("body")
+      var nanohtml5 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
 nanohtml0.setAttribute("id", "brightness")
 nanohtml0.setAttribute("min", "1")
 nanohtml0.setAttribute("max", "255")
 nanohtml0.setAttribute("value", arguments[0])
+nanohtml0["oninput"] = arguments[1]
 var nanohtml1 = document.createElement("br")
 var nanohtml2 = document.createElement("div")
 nanohtml2.setAttribute("id", "editor")
-ac(nanohtml2, ["\n        ",arguments[1],"\n        ",arguments[2],"\n      "])
-var nanohtml3 = document.createElement("button")
-nanohtml3["onclick"] = arguments[3]
-ac(nanohtml3, ["Generate code"])
-ac(nanohtml4, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n    "])
-      return nanohtml4
-    }(state.brightness,renderInsert([-1], emit),state.code.map((item, i) => {
+ac(nanohtml2, ["\n        ",arguments[2],"\n        ",arguments[3],"\n      "])
+var nanohtml4 = document.createElement("pre")
+var nanohtml3 = document.createElement("code")
+nanohtml3.setAttribute("class", "cpp")
+ac(nanohtml3, [arguments[4]])
+ac(nanohtml4, [nanohtml3])
+ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml4,"\n    "])
+      return nanohtml5
+    }(state.brightness,setBrightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
-        }),run))
-
-  function run (e) {
-    const code = genCode(state.code, state.colors)
-    console.log(code)
-  }
+        }),state.prettyCode))
 
   function clear () {
     emit('clear')
+  }
+
+  function setBrightness (e) {
+    emit('updateBrightness', e.target.value)
   }
 }
 
 function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
+  const statePretty = localStorage.getItem('state-pretty')
   state.brightness = stateBright ? Number(stateBright) : 10
   state.colors = [
     { id: 'a', name: 'electric purple', value: '187, 0, 255' },
@@ -198,6 +205,17 @@ function globalStore (state, emitter) {
   state.code = stateCode ? JSON.parse(stateCode) : [
     { action: 'set color', value: 'a' }
   ]
+  state.prettyCode = statePretty || ''
+
+  emitter.on('DOMContentLoaded', function() {
+    prettify()
+  })
+
+  emitter.on('updateBrightness', function (value) {
+    state.brightness = value
+    emitter.emit('render')
+  })
+
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
@@ -266,84 +284,69 @@ function globalStore (state, emitter) {
   emitter.on('render', function () {
     const stateCode = JSON.stringify(state.code)
     const brightness = state.brightness
+    state.prettyCode = genCode(state.code, state.colors, state.brightness)
     localStorage.setItem('state-code', stateCode)
     localStorage.setItem('state-brightness', brightness)
+    localStorage.setItem('state-pretty', state.prettyCode)
+    setTimeout(prettify, 0)
   })
 }
 
-function genCode (items, colors) {
+function prettify () {
+  document.querySelectorAll('pre code').forEach((block) => {
+    console.log('block', hljs, block)
+    hljs.highlightBlock(block)
+  })
+}
+
+function genCode (items, colors, brightness) {
   const seed = { value: 0 }
   const loopCode = genCodeHelp(items, colors, seed)
-    return `
-#include <Adafruit_NeoPixel.h>
-
-// Which pin on the Arduino is connected to the NeoPixels?
-// On a Trinket or Gemma we suggest changing this to 1:
+    return `#include <Adafruit_NeoPixel.h>
 #define LED_PIN    6
-
-// How many NeoPixels are attached to the Arduino?
 #define LED_COUNT 1
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
-// Argument 1 = Number of pixels in NeoPixel strip
-// Argument 2 = Arduino pin number (most are valid)
-// Argument 3 = Pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-
 int analogPin = 9;
-int val = 0;  // variable to store the value read
-bool touchConsumed = false;
 int currentR = 0;
 int currentG = 0;
 int currentB = 0;
-int touchCapThresholdTop = 150;
-int touchCapThresholdBottom = 50;
-int touchTimeout = 500;
-unsigned long lastTouched;
-
-//uint32_t colors[] = {pixels.Color(255,   0,   0), pixels.Color(  0, 255,   0), pixels.Color(  0,   0, 255)};
 
 void setup() {
   Serial.begin(9600);
-
-  pixels.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  pixels.clear();            // Turn OFF all pixels ASAP
-  pixels.setBrightness(10); // Set BRIGHTNESS to about 1/5 (max = 255)
+  pixels.begin();
+  pixels.clear();
+  pixels.setBrightness(${brightness});
 }
 
 void loop() {
-  val = analogRead(analogPin);
-  //  Serial.println(val);
-  bool touched = (val > touchCapThresholdTop) && !touchConsumed && (millis() - touchTimeout) > lastTouched;
-  if (val < touchCapThresholdBottom) {
-    touchConsumed = false;
-  }
-  ${loopCode}
-}
+${loopCode}}
 
 void setColor(int r, int g, int b) {
-    currentR = r;
-    currentG = g;
-    currentB = b;
-    pixels.setPixelColor(0, pixels.Color(r, g, b));         //  Set pixel's color (in RAM)
-    pixels.show();                          //  Update strip to match
+  currentR = r;
+  currentG = g;
+  currentB = b;
+  pixels.setPixelColor(0, pixels.Color(r, g, b));
+  pixels.show();
 }
 
 void clearPixel() {
-    currentR = 0;
-    currentG = 0;
-    currentB = 0;
-    pixels.clear();
+  currentR = 0;
+  currentG = 0;
+  currentB = 0;
+  pixels.clear();
 }
 
 bool checkColor(int r, int g, int b) {
-    return currentR == r && currentG == g && currentB == b;
-}
-    `
+  return currentR == r && currentG == g && currentB == b;
+}`
 }
 
-function genCodeHelp (items, colors, seed) {
+function genCodeHelp (items, colors, seed, level = 1) {
+  let tabs = ''
+  for (let i = 0; i < level; i++) {
+    tabs = tabs + '  '
+  }
   return items.map(item => {
     if (item.action === 'if' || item.action === 'else if') {
       let condition
@@ -362,22 +365,17 @@ function genCodeHelp (items, colors, seed) {
       return `
         ${item.action === 'if' ? 'if' : 'else if'} (${condition}) {
           ${item.value === 'touch' ? 'touchConsumed = true; lastTouched = millis();' : ''}
-          ${genCodeHelp(item.items, colors, seed)}
+          ${genCodeHelp(item.items, colors, seed, level + 1)}
         }
       `
     } else if (item.action === 'pause') {
       const ms = item.value * 1000
-      return `
-        delay(${ms});
-      `
+      return `${tabs}delay(${ms});\n`
     } else if (item.action === 'set color') {
       const color = colors.filter(c => {
-        console.log(c.id, item.value)
         return c.id === item.value
       })[0].value
-      return `
-        setColor(${color});
-      `
+      return `${tabs}setColor(${color});\n`
     } else if (item.action === 'repeat') {
       const count = Number(item.value)
       let counter = 'i'
@@ -385,16 +383,14 @@ function genCodeHelp (items, colors, seed) {
         counter = `${counter}i`
       }
       seed.value++
-      return `
-        for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
-          ${genCodeHelp(item.items, colors, seed)}
-        }
-      `
+      return `${tabs}for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
+${genCodeHelp(item.items, colors, seed, level + 1)}${tabs}}
+`
     }
   }).join('')
 }
 
-},{"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js":29,"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js":31,"choo":18,"choo-devtools":8}],2:[function(require,module,exports){
+},{"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js":31,"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js":33,"choo":18,"choo-devtools":8,"highlight.js/lib/highlight":25,"highlight.js/lib/languages/cpp":26}],2:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -904,7 +900,7 @@ var objectKeys = Object.keys || function (obj) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"object-assign":42,"util/":5}],3:[function(require,module,exports){
+},{"object-assign":44,"util/":5}],3:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -1526,7 +1522,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":4,"_process":47,"inherits":3}],6:[function(require,module,exports){
+},{"./support/isBuffer":4,"_process":49,"inherits":3}],6:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -3460,7 +3456,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"base64-js":6,"buffer":7,"ieee754":25}],8:[function(require,module,exports){
+},{"base64-js":6,"buffer":7,"ieee754":27}],8:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter
 var window = require('global/window')
 
@@ -3513,7 +3509,7 @@ function expose (opts) {
   }
 }
 
-},{"./lib/copy":9,"./lib/debug":10,"./lib/help":11,"./lib/log":12,"./lib/logger":13,"./lib/perf":14,"./lib/storage":15,"events":22,"global/window":24,"wayfarer/get-all-routes":51}],9:[function(require,module,exports){
+},{"./lib/copy":9,"./lib/debug":10,"./lib/help":11,"./lib/log":12,"./lib/logger":13,"./lib/perf":14,"./lib/storage":15,"events":22,"global/window":24,"wayfarer/get-all-routes":53}],9:[function(require,module,exports){
 var stateCopy = require('state-copy')
 var pluck = require('plucker')
 
@@ -3529,7 +3525,7 @@ function copy (state) {
   stateCopy(isStateString ? pluck.apply(this, arguments) : state)
 }
 
-},{"plucker":45,"state-copy":50}],10:[function(require,module,exports){
+},{"plucker":47,"state-copy":52}],10:[function(require,module,exports){
 var onChange = require('object-change-callsite')
 var nanologger = require('nanologger')
 var assert = require('assert')
@@ -3570,7 +3566,7 @@ function debug (state, emitter, app, localEmitter) {
   })
 }
 
-},{"assert":2,"nanologger":32,"object-change-callsite":43}],11:[function(require,module,exports){
+},{"assert":2,"nanologger":34,"object-change-callsite":45}],11:[function(require,module,exports){
 module.exports = help
 
 function help () {
@@ -3681,7 +3677,7 @@ function log (state, emitter, app, localEmitter) {
 
 function noop () {}
 
-},{"clone":19,"nanologger":32,"nanoscheduler":40,"remove-array-items":48}],13:[function(require,module,exports){
+},{"clone":19,"nanologger":34,"nanoscheduler":42,"remove-array-items":50}],13:[function(require,module,exports){
 var scheduler = require('nanoscheduler')()
 var nanologger = require('nanologger')
 var Hooks = require('choo-hooks')
@@ -3770,7 +3766,7 @@ function logger (state, emitter, opts) {
   }
 }
 
-},{"choo-hooks":16,"nanologger":32,"nanoscheduler":40}],14:[function(require,module,exports){
+},{"choo-hooks":16,"nanologger":34,"nanoscheduler":42}],14:[function(require,module,exports){
 var onPerformance = require('on-performance')
 
 var BAR = '█'
@@ -3911,7 +3907,7 @@ function getMedian (args) {
 // Do nothing.
 function noop () {}
 
-},{"on-performance":44}],15:[function(require,module,exports){
+},{"on-performance":46}],15:[function(require,module,exports){
 var pretty = require('prettier-bytes')
 
 module.exports = storage
@@ -3954,7 +3950,7 @@ function fmt (num) {
 
 function noop () {}
 
-},{"prettier-bytes":46}],16:[function(require,module,exports){
+},{"prettier-bytes":48}],16:[function(require,module,exports){
 var onPerformance = require('on-performance')
 var scheduler = require('nanoscheduler')()
 var assert = require('assert')
@@ -4099,7 +4095,7 @@ function sumDurations (timings) {
   }, 0).toFixed()
 }
 
-},{"assert":2,"nanoscheduler":40,"on-performance":44}],17:[function(require,module,exports){
+},{"assert":2,"nanoscheduler":42,"on-performance":46}],17:[function(require,module,exports){
 var assert = require('assert')
 var LRU = require('nanolru')
 
@@ -4142,7 +4138,7 @@ function newCall (Cls) {
   return new (Cls.bind.apply(Cls, arguments)) // eslint-disable-line
 }
 
-},{"assert":26,"nanolru":33}],18:[function(require,module,exports){
+},{"assert":28,"nanolru":35}],18:[function(require,module,exports){
 var scrollToAnchor = require('scroll-to-anchor')
 var documentReady = require('document-ready')
 var nanotiming = require('nanotiming')
@@ -4415,7 +4411,7 @@ Choo.prototype._setCache = function (state) {
   }
 }
 
-},{"./component/cache":17,"assert":26,"document-ready":21,"nanobus":27,"nanohref":28,"nanomorph":34,"nanoquery":37,"nanoraf":38,"nanorouter":39,"nanotiming":41,"scroll-to-anchor":49,"xtend":54}],19:[function(require,module,exports){
+},{"./component/cache":17,"assert":28,"document-ready":21,"nanobus":29,"nanohref":30,"nanomorph":36,"nanoquery":39,"nanoraf":40,"nanorouter":41,"nanotiming":43,"scroll-to-anchor":51,"xtend":56}],19:[function(require,module,exports){
 (function (Buffer){
 var clone = (function() {
 'use strict';
@@ -5327,6 +5323,1084 @@ module.exports = win;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],25:[function(require,module,exports){
+/*
+Syntax highlighting with language autodetection.
+https://highlightjs.org/
+*/
+
+(function(factory) {
+
+  // Find the global object for export to both the browser and web workers.
+  var globalObject = typeof window === 'object' && window ||
+                     typeof self === 'object' && self;
+
+  // Setup highlight.js for different environments. First is Node.js or
+  // CommonJS.
+  if(typeof exports !== 'undefined') {
+    factory(exports);
+  } else if(globalObject) {
+    // Export hljs globally even when using AMD for cases when this script
+    // is loaded with others that may still expect a global hljs.
+    globalObject.hljs = factory({});
+
+    // Finally register the global hljs with AMD.
+    if(typeof define === 'function' && define.amd) {
+      define([], function() {
+        return globalObject.hljs;
+      });
+    }
+  }
+
+}(function(hljs) {
+  // Convenience variables for build-in objects
+  var ArrayProto = [],
+      objectKeys = Object.keys;
+
+  // Global internal variables used within the highlight.js library.
+  var languages = {},
+      aliases   = {};
+
+  // Regular expressions used throughout the highlight.js library.
+  var noHighlightRe    = /^(no-?highlight|plain|text)$/i,
+      languagePrefixRe = /\blang(?:uage)?-([\w-]+)\b/i,
+      fixMarkupRe      = /((^(<[^>]+>|\t|)+|(?:\n)))/gm;
+
+  // The object will be assigned by the build tool. It used to synchronize API 
+  // of external language files with minified version of the highlight.js library.
+  var API_REPLACES;
+
+  var spanEndTag = '</span>';
+
+  // Global options used when within external APIs. This is modified when
+  // calling the `hljs.configure` function.
+  var options = {
+    classPrefix: 'hljs-',
+    tabReplace: null,
+    useBR: false,
+    languages: undefined
+  };
+
+
+  /* Utility functions */
+
+  function escape(value) {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function tag(node) {
+    return node.nodeName.toLowerCase();
+  }
+
+  function testRe(re, lexeme) {
+    var match = re && re.exec(lexeme);
+    return match && match.index === 0;
+  }
+
+  function isNotHighlighted(language) {
+    return noHighlightRe.test(language);
+  }
+
+  function blockLanguage(block) {
+    var i, match, length, _class;
+    var classes = block.className + ' ';
+
+    classes += block.parentNode ? block.parentNode.className : '';
+
+    // language-* takes precedence over non-prefixed class names.
+    match = languagePrefixRe.exec(classes);
+    if (match) {
+      return getLanguage(match[1]) ? match[1] : 'no-highlight';
+    }
+
+    classes = classes.split(/\s+/);
+
+    for (i = 0, length = classes.length; i < length; i++) {
+      _class = classes[i];
+
+      if (isNotHighlighted(_class) || getLanguage(_class)) {
+        return _class;
+      }
+    }
+  }
+
+  function inherit(parent) {  // inherit(parent, override_obj, override_obj, ...)
+    var key;
+    var result = {};
+    var objects = Array.prototype.slice.call(arguments, 1);
+
+    for (key in parent)
+      result[key] = parent[key];
+    objects.forEach(function(obj) {
+      for (key in obj)
+        result[key] = obj[key];
+    });
+    return result;
+  }
+
+  /* Stream merging */
+
+  function nodeStream(node) {
+    var result = [];
+    (function _nodeStream(node, offset) {
+      for (var child = node.firstChild; child; child = child.nextSibling) {
+        if (child.nodeType === 3)
+          offset += child.nodeValue.length;
+        else if (child.nodeType === 1) {
+          result.push({
+            event: 'start',
+            offset: offset,
+            node: child
+          });
+          offset = _nodeStream(child, offset);
+          // Prevent void elements from having an end tag that would actually
+          // double them in the output. There are more void elements in HTML
+          // but we list only those realistically expected in code display.
+          if (!tag(child).match(/br|hr|img|input/)) {
+            result.push({
+              event: 'stop',
+              offset: offset,
+              node: child
+            });
+          }
+        }
+      }
+      return offset;
+    })(node, 0);
+    return result;
+  }
+
+  function mergeStreams(original, highlighted, value) {
+    var processed = 0;
+    var result = '';
+    var nodeStack = [];
+
+    function selectStream() {
+      if (!original.length || !highlighted.length) {
+        return original.length ? original : highlighted;
+      }
+      if (original[0].offset !== highlighted[0].offset) {
+        return (original[0].offset < highlighted[0].offset) ? original : highlighted;
+      }
+
+      /*
+      To avoid starting the stream just before it should stop the order is
+      ensured that original always starts first and closes last:
+
+      if (event1 == 'start' && event2 == 'start')
+        return original;
+      if (event1 == 'start' && event2 == 'stop')
+        return highlighted;
+      if (event1 == 'stop' && event2 == 'start')
+        return original;
+      if (event1 == 'stop' && event2 == 'stop')
+        return highlighted;
+
+      ... which is collapsed to:
+      */
+      return highlighted[0].event === 'start' ? original : highlighted;
+    }
+
+    function open(node) {
+      function attr_str(a) {return ' ' + a.nodeName + '="' + escape(a.value).replace('"', '&quot;') + '"';}
+      result += '<' + tag(node) + ArrayProto.map.call(node.attributes, attr_str).join('') + '>';
+    }
+
+    function close(node) {
+      result += '</' + tag(node) + '>';
+    }
+
+    function render(event) {
+      (event.event === 'start' ? open : close)(event.node);
+    }
+
+    while (original.length || highlighted.length) {
+      var stream = selectStream();
+      result += escape(value.substring(processed, stream[0].offset));
+      processed = stream[0].offset;
+      if (stream === original) {
+        /*
+        On any opening or closing tag of the original markup we first close
+        the entire highlighted node stack, then render the original tag along
+        with all the following original tags at the same offset and then
+        reopen all the tags on the highlighted stack.
+        */
+        nodeStack.reverse().forEach(close);
+        do {
+          render(stream.splice(0, 1)[0]);
+          stream = selectStream();
+        } while (stream === original && stream.length && stream[0].offset === processed);
+        nodeStack.reverse().forEach(open);
+      } else {
+        if (stream[0].event === 'start') {
+          nodeStack.push(stream[0].node);
+        } else {
+          nodeStack.pop();
+        }
+        render(stream.splice(0, 1)[0]);
+      }
+    }
+    return result + escape(value.substr(processed));
+  }
+
+  /* Initialization */
+
+  function expand_mode(mode) {
+    if (mode.variants && !mode.cached_variants) {
+      mode.cached_variants = mode.variants.map(function(variant) {
+        return inherit(mode, {variants: null}, variant);
+      });
+    }
+    return mode.cached_variants || (mode.endsWithParent && [inherit(mode)]) || [mode];
+  }
+
+  function restoreLanguageApi(obj) {
+    if(API_REPLACES && !obj.langApiRestored) {
+      obj.langApiRestored = true;
+      for(var key in API_REPLACES)
+        obj[key] && (obj[API_REPLACES[key]] = obj[key]);
+      (obj.contains || []).concat(obj.variants || []).forEach(restoreLanguageApi);
+    }
+  }
+
+  function compileLanguage(language) {
+
+    function reStr(re) {
+        return (re && re.source) || re;
+    }
+
+    function langRe(value, global) {
+      return new RegExp(
+        reStr(value),
+        'm' + (language.case_insensitive ? 'i' : '') + (global ? 'g' : '')
+      );
+    }
+
+    // joinRe logically computes regexps.join(separator), but fixes the
+    // backreferences so they continue to match.
+    function joinRe(regexps, separator) {
+      // backreferenceRe matches an open parenthesis or backreference. To avoid
+      // an incorrect parse, it additionally matches the following:
+      // - [...] elements, where the meaning of parentheses and escapes change
+      // - other escape sequences, so we do not misparse escape sequences as
+      //   interesting elements
+      // - non-matching or lookahead parentheses, which do not capture. These
+      //   follow the '(' with a '?'.
+      var backreferenceRe = /\[(?:[^\\\]]|\\.)*\]|\(\??|\\([1-9][0-9]*)|\\./;
+      var numCaptures = 0;
+      var ret = '';
+      for (var i = 0; i < regexps.length; i++) {
+        var offset = numCaptures;
+        var re = reStr(regexps[i]);
+        if (i > 0) {
+          ret += separator;
+        }
+        while (re.length > 0) {
+          var match = backreferenceRe.exec(re);
+          if (match == null) {
+            ret += re;
+            break;
+          }
+          ret += re.substring(0, match.index);
+          re = re.substring(match.index + match[0].length);
+          if (match[0][0] == '\\' && match[1]) {
+            // Adjust the backreference.
+            ret += '\\' + String(Number(match[1]) + offset);
+          } else {
+            ret += match[0];
+            if (match[0] == '(') {
+              numCaptures++;
+            }
+          }
+        }
+      }
+      return ret;
+    }
+
+    function compileMode(mode, parent) {
+      if (mode.compiled)
+        return;
+      mode.compiled = true;
+
+      mode.keywords = mode.keywords || mode.beginKeywords;
+      if (mode.keywords) {
+        var compiled_keywords = {};
+
+        var flatten = function(className, str) {
+          if (language.case_insensitive) {
+            str = str.toLowerCase();
+          }
+          str.split(' ').forEach(function(kw) {
+            var pair = kw.split('|');
+            compiled_keywords[pair[0]] = [className, pair[1] ? Number(pair[1]) : 1];
+          });
+        };
+
+        if (typeof mode.keywords === 'string') { // string
+          flatten('keyword', mode.keywords);
+        } else {
+          objectKeys(mode.keywords).forEach(function (className) {
+            flatten(className, mode.keywords[className]);
+          });
+        }
+        mode.keywords = compiled_keywords;
+      }
+      mode.lexemesRe = langRe(mode.lexemes || /\w+/, true);
+
+      if (parent) {
+        if (mode.beginKeywords) {
+          mode.begin = '\\b(' + mode.beginKeywords.split(' ').join('|') + ')\\b';
+        }
+        if (!mode.begin)
+          mode.begin = /\B|\b/;
+        mode.beginRe = langRe(mode.begin);
+        if (mode.endSameAsBegin)
+          mode.end = mode.begin;
+        if (!mode.end && !mode.endsWithParent)
+          mode.end = /\B|\b/;
+        if (mode.end)
+          mode.endRe = langRe(mode.end);
+        mode.terminator_end = reStr(mode.end) || '';
+        if (mode.endsWithParent && parent.terminator_end)
+          mode.terminator_end += (mode.end ? '|' : '') + parent.terminator_end;
+      }
+      if (mode.illegal)
+        mode.illegalRe = langRe(mode.illegal);
+      if (mode.relevance == null)
+        mode.relevance = 1;
+      if (!mode.contains) {
+        mode.contains = [];
+      }
+      mode.contains = Array.prototype.concat.apply([], mode.contains.map(function(c) {
+        return expand_mode(c === 'self' ? mode : c);
+      }));
+      mode.contains.forEach(function(c) {compileMode(c, mode);});
+
+      if (mode.starts) {
+        compileMode(mode.starts, parent);
+      }
+
+      var terminators =
+        mode.contains.map(function(c) {
+          return c.beginKeywords ? '\\.?(?:' + c.begin + ')\\.?' : c.begin;
+        })
+        .concat([mode.terminator_end, mode.illegal])
+        .map(reStr)
+        .filter(Boolean);
+      mode.terminators = terminators.length ? langRe(joinRe(terminators, '|'), true) : {exec: function(/*s*/) {return null;}};
+    }
+    
+    compileMode(language);
+  }
+
+  /*
+  Core highlighting function. Accepts a language name, or an alias, and a
+  string with the code to highlight. Returns an object with the following
+  properties:
+
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+
+  */
+  function highlight(name, value, ignore_illegals, continuation) {
+
+    function escapeRe(value) {
+      return new RegExp(value.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'm');
+    }
+
+    function subMode(lexeme, mode) {
+      var i, length;
+
+      for (i = 0, length = mode.contains.length; i < length; i++) {
+        if (testRe(mode.contains[i].beginRe, lexeme)) {
+          if (mode.contains[i].endSameAsBegin) {
+            mode.contains[i].endRe = escapeRe( mode.contains[i].beginRe.exec(lexeme)[0] );
+          }
+          return mode.contains[i];
+        }
+      }
+    }
+
+    function endOfMode(mode, lexeme) {
+      if (testRe(mode.endRe, lexeme)) {
+        while (mode.endsParent && mode.parent) {
+          mode = mode.parent;
+        }
+        return mode;
+      }
+      if (mode.endsWithParent) {
+        return endOfMode(mode.parent, lexeme);
+      }
+    }
+
+    function isIllegal(lexeme, mode) {
+      return !ignore_illegals && testRe(mode.illegalRe, lexeme);
+    }
+
+    function keywordMatch(mode, match) {
+      var match_str = language.case_insensitive ? match[0].toLowerCase() : match[0];
+      return mode.keywords.hasOwnProperty(match_str) && mode.keywords[match_str];
+    }
+
+    function buildSpan(classname, insideSpan, leaveOpen, noPrefix) {
+      var classPrefix = noPrefix ? '' : options.classPrefix,
+          openSpan    = '<span class="' + classPrefix,
+          closeSpan   = leaveOpen ? '' : spanEndTag;
+
+      openSpan += classname + '">';
+
+      if (!classname) return insideSpan;
+      return openSpan + insideSpan + closeSpan;
+    }
+
+    function processKeywords() {
+      var keyword_match, last_index, match, result;
+
+      if (!top.keywords)
+        return escape(mode_buffer);
+
+      result = '';
+      last_index = 0;
+      top.lexemesRe.lastIndex = 0;
+      match = top.lexemesRe.exec(mode_buffer);
+
+      while (match) {
+        result += escape(mode_buffer.substring(last_index, match.index));
+        keyword_match = keywordMatch(top, match);
+        if (keyword_match) {
+          relevance += keyword_match[1];
+          result += buildSpan(keyword_match[0], escape(match[0]));
+        } else {
+          result += escape(match[0]);
+        }
+        last_index = top.lexemesRe.lastIndex;
+        match = top.lexemesRe.exec(mode_buffer);
+      }
+      return result + escape(mode_buffer.substr(last_index));
+    }
+
+    function processSubLanguage() {
+      var explicit = typeof top.subLanguage === 'string';
+      if (explicit && !languages[top.subLanguage]) {
+        return escape(mode_buffer);
+      }
+
+      var result = explicit ?
+                   highlight(top.subLanguage, mode_buffer, true, continuations[top.subLanguage]) :
+                   highlightAuto(mode_buffer, top.subLanguage.length ? top.subLanguage : undefined);
+
+      // Counting embedded language score towards the host language may be disabled
+      // with zeroing the containing mode relevance. Usecase in point is Markdown that
+      // allows XML everywhere and makes every XML snippet to have a much larger Markdown
+      // score.
+      if (top.relevance > 0) {
+        relevance += result.relevance;
+      }
+      if (explicit) {
+        continuations[top.subLanguage] = result.top;
+      }
+      return buildSpan(result.language, result.value, false, true);
+    }
+
+    function processBuffer() {
+      result += (top.subLanguage != null ? processSubLanguage() : processKeywords());
+      mode_buffer = '';
+    }
+
+    function startNewMode(mode) {
+      result += mode.className? buildSpan(mode.className, '', true): '';
+      top = Object.create(mode, {parent: {value: top}});
+    }
+
+    function processLexeme(buffer, lexeme) {
+
+      mode_buffer += buffer;
+
+      if (lexeme == null) {
+        processBuffer();
+        return 0;
+      }
+
+      var new_mode = subMode(lexeme, top);
+      if (new_mode) {
+        if (new_mode.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (new_mode.excludeBegin) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (!new_mode.returnBegin && !new_mode.excludeBegin) {
+            mode_buffer = lexeme;
+          }
+        }
+        startNewMode(new_mode, lexeme);
+        return new_mode.returnBegin ? 0 : lexeme.length;
+      }
+
+      var end_mode = endOfMode(top, lexeme);
+      if (end_mode) {
+        var origin = top;
+        if (origin.skip) {
+          mode_buffer += lexeme;
+        } else {
+          if (!(origin.returnEnd || origin.excludeEnd)) {
+            mode_buffer += lexeme;
+          }
+          processBuffer();
+          if (origin.excludeEnd) {
+            mode_buffer = lexeme;
+          }
+        }
+        do {
+          if (top.className) {
+            result += spanEndTag;
+          }
+          if (!top.skip && !top.subLanguage) {
+            relevance += top.relevance;
+          }
+          top = top.parent;
+        } while (top !== end_mode.parent);
+        if (end_mode.starts) {
+          if (end_mode.endSameAsBegin) {
+            end_mode.starts.endRe = end_mode.endRe;
+          }
+          startNewMode(end_mode.starts, '');
+        }
+        return origin.returnEnd ? 0 : lexeme.length;
+      }
+
+      if (isIllegal(lexeme, top))
+        throw new Error('Illegal lexeme "' + lexeme + '" for mode "' + (top.className || '<unnamed>') + '"');
+
+      /*
+      Parser should not reach this point as all types of lexemes should be caught
+      earlier, but if it does due to some bug make sure it advances at least one
+      character forward to prevent infinite looping.
+      */
+      mode_buffer += lexeme;
+      return lexeme.length || 1;
+    }
+
+    var language = getLanguage(name);
+    if (!language) {
+      throw new Error('Unknown language: "' + name + '"');
+    }
+
+    compileLanguage(language);
+    var top = continuation || language;
+    var continuations = {}; // keep continuations for sub-languages
+    var result = '', current;
+    for(current = top; current !== language; current = current.parent) {
+      if (current.className) {
+        result = buildSpan(current.className, '', true) + result;
+      }
+    }
+    var mode_buffer = '';
+    var relevance = 0;
+    try {
+      var match, count, index = 0;
+      while (true) {
+        top.terminators.lastIndex = index;
+        match = top.terminators.exec(value);
+        if (!match)
+          break;
+        count = processLexeme(value.substring(index, match.index), match[0]);
+        index = match.index + count;
+      }
+      processLexeme(value.substr(index));
+      for(current = top; current.parent; current = current.parent) { // close dangling modes
+        if (current.className) {
+          result += spanEndTag;
+        }
+      }
+      return {
+        relevance: relevance,
+        value: result,
+        language: name,
+        top: top
+      };
+    } catch (e) {
+      if (e.message && e.message.indexOf('Illegal') !== -1) {
+        return {
+          relevance: 0,
+          value: escape(value)
+        };
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /*
+  Highlighting with language detection. Accepts a string with the code to
+  highlight. Returns an object with the following properties:
+
+  - language (detected language)
+  - relevance (int)
+  - value (an HTML string with highlighting markup)
+  - second_best (object with the same structure for second-best heuristically
+    detected language, may be absent)
+
+  */
+  function highlightAuto(text, languageSubset) {
+    languageSubset = languageSubset || options.languages || objectKeys(languages);
+    var result = {
+      relevance: 0,
+      value: escape(text)
+    };
+    var second_best = result;
+    languageSubset.filter(getLanguage).filter(autoDetection).forEach(function(name) {
+      var current = highlight(name, text, false);
+      current.language = name;
+      if (current.relevance > second_best.relevance) {
+        second_best = current;
+      }
+      if (current.relevance > result.relevance) {
+        second_best = result;
+        result = current;
+      }
+    });
+    if (second_best.language) {
+      result.second_best = second_best;
+    }
+    return result;
+  }
+
+  /*
+  Post-processing of the highlighted markup:
+
+  - replace TABs with something more useful
+  - replace real line-breaks with '<br>' for non-pre containers
+
+  */
+  function fixMarkup(value) {
+    return !(options.tabReplace || options.useBR)
+      ? value
+      : value.replace(fixMarkupRe, function(match, p1) {
+          if (options.useBR && match === '\n') {
+            return '<br>';
+          } else if (options.tabReplace) {
+            return p1.replace(/\t/g, options.tabReplace);
+          }
+          return '';
+      });
+  }
+
+  function buildClassName(prevClassName, currentLang, resultLang) {
+    var language = currentLang ? aliases[currentLang] : resultLang,
+        result   = [prevClassName.trim()];
+
+    if (!prevClassName.match(/\bhljs\b/)) {
+      result.push('hljs');
+    }
+
+    if (prevClassName.indexOf(language) === -1) {
+      result.push(language);
+    }
+
+    return result.join(' ').trim();
+  }
+
+  /*
+  Applies highlighting to a DOM node containing code. Accepts a DOM node and
+  two optional parameters for fixMarkup.
+  */
+  function highlightBlock(block) {
+    var node, originalStream, result, resultNode, text;
+    var language = blockLanguage(block);
+
+    if (isNotHighlighted(language))
+        return;
+
+    if (options.useBR) {
+      node = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      node.innerHTML = block.innerHTML.replace(/\n/g, '').replace(/<br[ \/]*>/g, '\n');
+    } else {
+      node = block;
+    }
+    text = node.textContent;
+    result = language ? highlight(language, text, true) : highlightAuto(text);
+
+    originalStream = nodeStream(node);
+    if (originalStream.length) {
+      resultNode = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      resultNode.innerHTML = result.value;
+      result.value = mergeStreams(originalStream, nodeStream(resultNode), text);
+    }
+    result.value = fixMarkup(result.value);
+
+    block.innerHTML = result.value;
+    block.className = buildClassName(block.className, language, result.language);
+    block.result = {
+      language: result.language,
+      re: result.relevance
+    };
+    if (result.second_best) {
+      block.second_best = {
+        language: result.second_best.language,
+        re: result.second_best.relevance
+      };
+    }
+  }
+
+  /*
+  Updates highlight.js global options with values passed in the form of an object.
+  */
+  function configure(user_options) {
+    options = inherit(options, user_options);
+  }
+
+  /*
+  Applies highlighting to all <pre><code>..</code></pre> blocks on a page.
+  */
+  function initHighlighting() {
+    if (initHighlighting.called)
+      return;
+    initHighlighting.called = true;
+
+    var blocks = document.querySelectorAll('pre code');
+    ArrayProto.forEach.call(blocks, highlightBlock);
+  }
+
+  /*
+  Attaches highlighting to the page load event.
+  */
+  function initHighlightingOnLoad() {
+    addEventListener('DOMContentLoaded', initHighlighting, false);
+    addEventListener('load', initHighlighting, false);
+  }
+
+  function registerLanguage(name, language) {
+    var lang = languages[name] = language(hljs);
+    restoreLanguageApi(lang);
+    if (lang.aliases) {
+      lang.aliases.forEach(function(alias) {aliases[alias] = name;});
+    }
+  }
+
+  function listLanguages() {
+    return objectKeys(languages);
+  }
+
+  function getLanguage(name) {
+    name = (name || '').toLowerCase();
+    return languages[name] || languages[aliases[name]];
+  }
+
+  function autoDetection(name) {
+    var lang = getLanguage(name);
+    return lang && !lang.disableAutodetect;
+  }
+
+  /* Interface definition */
+
+  hljs.highlight = highlight;
+  hljs.highlightAuto = highlightAuto;
+  hljs.fixMarkup = fixMarkup;
+  hljs.highlightBlock = highlightBlock;
+  hljs.configure = configure;
+  hljs.initHighlighting = initHighlighting;
+  hljs.initHighlightingOnLoad = initHighlightingOnLoad;
+  hljs.registerLanguage = registerLanguage;
+  hljs.listLanguages = listLanguages;
+  hljs.getLanguage = getLanguage;
+  hljs.autoDetection = autoDetection;
+  hljs.inherit = inherit;
+
+  // Common regexps
+  hljs.IDENT_RE = '[a-zA-Z]\\w*';
+  hljs.UNDERSCORE_IDENT_RE = '[a-zA-Z_]\\w*';
+  hljs.NUMBER_RE = '\\b\\d+(\\.\\d+)?';
+  hljs.C_NUMBER_RE = '(-?)(\\b0[xX][a-fA-F0-9]+|(\\b\\d+(\\.\\d*)?|\\.\\d+)([eE][-+]?\\d+)?)'; // 0x..., 0..., decimal, float
+  hljs.BINARY_NUMBER_RE = '\\b(0b[01]+)'; // 0b...
+  hljs.RE_STARTERS_RE = '!|!=|!==|%|%=|&|&&|&=|\\*|\\*=|\\+|\\+=|,|-|-=|/=|/|:|;|<<|<<=|<=|<|===|==|=|>>>=|>>=|>=|>>>|>>|>|\\?|\\[|\\{|\\(|\\^|\\^=|\\||\\|=|\\|\\||~';
+
+  // Common modes
+  hljs.BACKSLASH_ESCAPE = {
+    begin: '\\\\[\\s\\S]', relevance: 0
+  };
+  hljs.APOS_STRING_MODE = {
+    className: 'string',
+    begin: '\'', end: '\'',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.QUOTE_STRING_MODE = {
+    className: 'string',
+    begin: '"', end: '"',
+    illegal: '\\n',
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  hljs.PHRASAL_WORDS_MODE = {
+    begin: /\b(a|an|the|are|I'm|isn't|don't|doesn't|won't|but|just|should|pretty|simply|enough|gonna|going|wtf|so|such|will|you|your|they|like|more)\b/
+  };
+  hljs.COMMENT = function (begin, end, inherits) {
+    var mode = hljs.inherit(
+      {
+        className: 'comment',
+        begin: begin, end: end,
+        contains: []
+      },
+      inherits || {}
+    );
+    mode.contains.push(hljs.PHRASAL_WORDS_MODE);
+    mode.contains.push({
+      className: 'doctag',
+      begin: '(?:TODO|FIXME|NOTE|BUG|XXX):',
+      relevance: 0
+    });
+    return mode;
+  };
+  hljs.C_LINE_COMMENT_MODE = hljs.COMMENT('//', '$');
+  hljs.C_BLOCK_COMMENT_MODE = hljs.COMMENT('/\\*', '\\*/');
+  hljs.HASH_COMMENT_MODE = hljs.COMMENT('#', '$');
+  hljs.NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE,
+    relevance: 0
+  };
+  hljs.C_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.C_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.BINARY_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.BINARY_NUMBER_RE,
+    relevance: 0
+  };
+  hljs.CSS_NUMBER_MODE = {
+    className: 'number',
+    begin: hljs.NUMBER_RE + '(' +
+      '%|em|ex|ch|rem'  +
+      '|vw|vh|vmin|vmax' +
+      '|cm|mm|in|pt|pc|px' +
+      '|deg|grad|rad|turn' +
+      '|s|ms' +
+      '|Hz|kHz' +
+      '|dpi|dpcm|dppx' +
+      ')?',
+    relevance: 0
+  };
+  hljs.REGEXP_MODE = {
+    className: 'regexp',
+    begin: /\//, end: /\/[gimuy]*/,
+    illegal: /\n/,
+    contains: [
+      hljs.BACKSLASH_ESCAPE,
+      {
+        begin: /\[/, end: /\]/,
+        relevance: 0,
+        contains: [hljs.BACKSLASH_ESCAPE]
+      }
+    ]
+  };
+  hljs.TITLE_MODE = {
+    className: 'title',
+    begin: hljs.IDENT_RE,
+    relevance: 0
+  };
+  hljs.UNDERSCORE_TITLE_MODE = {
+    className: 'title',
+    begin: hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+  hljs.METHOD_GUARD = {
+    // excludes method names from keyword processing
+    begin: '\\.\\s*' + hljs.UNDERSCORE_IDENT_RE,
+    relevance: 0
+  };
+
+  return hljs;
+}));
+
+},{}],26:[function(require,module,exports){
+module.exports = function(hljs) {
+  var CPP_PRIMITIVE_TYPES = {
+    className: 'keyword',
+    begin: '\\b[a-z\\d_]*_t\\b'
+  };
+
+  var STRINGS = {
+    className: 'string',
+    variants: [
+      {
+        begin: '(u8?|U|L)?"', end: '"',
+        illegal: '\\n',
+        contains: [hljs.BACKSLASH_ESCAPE]
+      },
+      { begin: /(?:u8?|U|L)?R"([^()\\ ]{0,16})\((?:.|\n)*?\)\1"/ },
+      {
+        begin: '\'\\\\?.', end: '\'',
+        illegal: '.'
+      }
+    ]
+  };
+
+  var NUMBERS = {
+    className: 'number',
+    variants: [
+      { begin: '\\b(0b[01\']+)' },
+      { begin: '(-?)\\b([\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)(u|U|l|L|ul|UL|f|F|b|B)' },
+      { begin: '(-?)(\\b0[xX][a-fA-F0-9\']+|(\\b[\\d\']+(\\.[\\d\']*)?|\\.[\\d\']+)([eE][-+]?[\\d\']+)?)' }
+    ],
+    relevance: 0
+  };
+
+  var PREPROCESSOR =       {
+    className: 'meta',
+    begin: /#\s*[a-z]+\b/, end: /$/,
+    keywords: {
+      'meta-keyword':
+        'if else elif endif define undef warning error line ' +
+        'pragma ifdef ifndef include'
+    },
+    contains: [
+      {
+        begin: /\\\n/, relevance: 0
+      },
+      hljs.inherit(STRINGS, {className: 'meta-string'}),
+      {
+        className: 'meta-string',
+        begin: /<[^\n>]*>/, end: /$/,
+        illegal: '\\n',
+      },
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE
+    ]
+  };
+
+  var FUNCTION_TITLE = hljs.IDENT_RE + '\\s*\\(';
+
+  var CPP_KEYWORDS = {
+    keyword: 'int float while private char catch import module export virtual operator sizeof ' +
+      'dynamic_cast|10 typedef const_cast|10 const for static_cast|10 union namespace ' +
+      'unsigned long volatile static protected bool template mutable if public friend ' +
+      'do goto auto void enum else break extern using asm case typeid ' +
+      'short reinterpret_cast|10 default double register explicit signed typename try this ' +
+      'switch continue inline delete alignof constexpr decltype ' +
+      'noexcept static_assert thread_local restrict _Bool complex _Complex _Imaginary ' +
+      'atomic_bool atomic_char atomic_schar ' +
+      'atomic_uchar atomic_short atomic_ushort atomic_int atomic_uint atomic_long atomic_ulong atomic_llong ' +
+      'atomic_ullong new throw return ' +
+      'and or not',
+    built_in: 'std string cin cout cerr clog stdin stdout stderr stringstream istringstream ostringstream ' +
+      'auto_ptr deque list queue stack vector map set bitset multiset multimap unordered_set ' +
+      'unordered_map unordered_multiset unordered_multimap array shared_ptr abort abs acos ' +
+      'asin atan2 atan calloc ceil cosh cos exit exp fabs floor fmod fprintf fputs free frexp ' +
+      'fscanf isalnum isalpha iscntrl isdigit isgraph islower isprint ispunct isspace isupper ' +
+      'isxdigit tolower toupper labs ldexp log10 log malloc realloc memchr memcmp memcpy memset modf pow ' +
+      'printf putchar puts scanf sinh sin snprintf sprintf sqrt sscanf strcat strchr strcmp ' +
+      'strcpy strcspn strlen strncat strncmp strncpy strpbrk strrchr strspn strstr tanh tan ' +
+      'vfprintf vprintf vsprintf endl initializer_list unique_ptr',
+    literal: 'true false nullptr NULL'
+  };
+
+  var EXPRESSION_CONTAINS = [
+    CPP_PRIMITIVE_TYPES,
+    hljs.C_LINE_COMMENT_MODE,
+    hljs.C_BLOCK_COMMENT_MODE,
+    NUMBERS,
+    STRINGS
+  ];
+
+  return {
+    aliases: ['c', 'cc', 'h', 'c++', 'h++', 'hpp', 'hh', 'hxx', 'cxx'],
+    keywords: CPP_KEYWORDS,
+    illegal: '</',
+    contains: EXPRESSION_CONTAINS.concat([
+      PREPROCESSOR,
+      {
+        begin: '\\b(deque|list|queue|stack|vector|map|set|bitset|multiset|multimap|unordered_map|unordered_set|unordered_multiset|unordered_multimap|array)\\s*<', end: '>',
+        keywords: CPP_KEYWORDS,
+        contains: ['self', CPP_PRIMITIVE_TYPES]
+      },
+      {
+        begin: hljs.IDENT_RE + '::',
+        keywords: CPP_KEYWORDS
+      },
+      {
+        // This mode covers expression context where we can't expect a function
+        // definition and shouldn't highlight anything that looks like one:
+        // `return some()`, `else if()`, `(x*sum(1, 2))`
+        variants: [
+          {begin: /=/, end: /;/},
+          {begin: /\(/, end: /\)/},
+          {beginKeywords: 'new throw return else', end: /;/}
+        ],
+        keywords: CPP_KEYWORDS,
+        contains: EXPRESSION_CONTAINS.concat([
+          {
+            begin: /\(/, end: /\)/,
+            keywords: CPP_KEYWORDS,
+            contains: EXPRESSION_CONTAINS.concat(['self']),
+            relevance: 0
+          }
+        ]),
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '(' + hljs.IDENT_RE + '[\\*&\\s]+)+' + FUNCTION_TITLE,
+        returnBegin: true, end: /[{;=]/,
+        excludeEnd: true,
+        keywords: CPP_KEYWORDS,
+        illegal: /[^\w\s\*&]/,
+        contains: [
+          {
+            begin: FUNCTION_TITLE, returnBegin: true,
+            contains: [hljs.TITLE_MODE],
+            relevance: 0
+          },
+          {
+            className: 'params',
+            begin: /\(/, end: /\)/,
+            keywords: CPP_KEYWORDS,
+            relevance: 0,
+            contains: [
+              hljs.C_LINE_COMMENT_MODE,
+              hljs.C_BLOCK_COMMENT_MODE,
+              STRINGS,
+              NUMBERS,
+              CPP_PRIMITIVE_TYPES,
+              // Count matching parentheses.
+              {
+                begin: /\(/, end: /\)/,
+                keywords: CPP_KEYWORDS,
+                relevance: 0,
+                contains: [
+                  'self',
+                  hljs.C_LINE_COMMENT_MODE,
+                  hljs.C_BLOCK_COMMENT_MODE,
+                  STRINGS,
+                  NUMBERS,
+                  CPP_PRIMITIVE_TYPES
+                ]
+              }
+            ]
+          },
+          hljs.C_LINE_COMMENT_MODE,
+          hljs.C_BLOCK_COMMENT_MODE,
+          PREPROCESSOR
+        ]
+      },
+      {
+        className: 'class',
+        beginKeywords: 'class struct', end: /[{;:]/,
+        contains: [
+          {begin: /</, end: />/, contains: ['self']}, // skip generic stuff
+          hljs.TITLE_MODE
+        ]
+      }
+    ]),
+    exports: {
+      preprocessor: PREPROCESSOR,
+      strings: STRINGS,
+      keywords: CPP_KEYWORDS
+    }
+  };
+};
+},{}],27:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -5412,7 +6486,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 assert.notEqual = notEqual
 assert.notOk = notOk
 assert.equal = equal
@@ -5436,7 +6510,7 @@ function assert (t, m) {
   if (!t) throw new Error(m || 'AssertionError')
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var splice = require('remove-array-items')
 var nanotiming = require('nanotiming')
 var assert = require('assert')
@@ -5600,7 +6674,7 @@ Nanobus.prototype._emit = function (arr, eventName, data, uuid) {
   }
 }
 
-},{"assert":26,"nanotiming":41,"remove-array-items":48}],28:[function(require,module,exports){
+},{"assert":28,"nanotiming":43,"remove-array-items":50}],30:[function(require,module,exports){
 var assert = require('assert')
 
 var safeExternalLink = /(noopener|noreferrer) (noopener|noreferrer)/
@@ -5645,7 +6719,7 @@ function href (cb, root) {
   })
 }
 
-},{"assert":26}],29:[function(require,module,exports){
+},{"assert":28}],31:[function(require,module,exports){
 'use strict'
 
 var trailingNewlineRegex = /\n[\s]+$/
@@ -5780,14 +6854,14 @@ module.exports = function appendChild (el, childs) {
   }
 }
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict'
 
 module.exports = [
   'indeterminate'
 ]
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 'use strict'
 
 var DIRECT_PROPS = require('./direct-props')
@@ -5814,7 +6888,7 @@ module.exports = function nanohtmlSetAttribute (el, attr, value) {
   }
 }
 
-},{"./direct-props":30}],32:[function(require,module,exports){
+},{"./direct-props":32}],34:[function(require,module,exports){
 var assert = require('assert')
 
 var emojis = {
@@ -5979,7 +7053,7 @@ function pad (str) {
   return str.length !== 2 ? 0 + str : str
 }
 
-},{"assert":2}],33:[function(require,module,exports){
+},{"assert":2}],35:[function(require,module,exports){
 module.exports = LRU
 
 function LRU (opts) {
@@ -6117,7 +7191,7 @@ LRU.prototype.evict = function () {
   this.remove(this.tail)
 }
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 var assert = require('nanoassert')
 var morph = require('./lib/morph')
 
@@ -6282,7 +7356,7 @@ function same (a, b) {
   return false
 }
 
-},{"./lib/morph":36,"nanoassert":26}],35:[function(require,module,exports){
+},{"./lib/morph":38,"nanoassert":28}],37:[function(require,module,exports){
 module.exports = [
   // attribute events (can be set with attributes)
   'onclick',
@@ -6326,7 +7400,7 @@ module.exports = [
   'onfocusout'
 ]
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 var events = require('./events')
 var eventsLength = events.length
 
@@ -6492,7 +7566,7 @@ function updateAttribute (newNode, oldNode, name) {
   }
 }
 
-},{"./events":35}],37:[function(require,module,exports){
+},{"./events":37}],39:[function(require,module,exports){
 var reg = /([^?=&]+)(=([^&]*))?/g
 var assert = require('assert')
 
@@ -6516,7 +7590,7 @@ function qs (url) {
   return obj
 }
 
-},{"assert":26}],38:[function(require,module,exports){
+},{"assert":28}],40:[function(require,module,exports){
 'use strict'
 
 var assert = require('assert')
@@ -6553,7 +7627,7 @@ function nanoraf (render, raf) {
   }
 }
 
-},{"assert":26}],39:[function(require,module,exports){
+},{"assert":28}],41:[function(require,module,exports){
 var assert = require('assert')
 var wayfarer = require('wayfarer')
 
@@ -6609,7 +7683,7 @@ function pathname (routename, isElectron) {
   return decodeURI(routename.replace(suffix, '').replace(normalize, '/'))
 }
 
-},{"assert":26,"wayfarer":52}],40:[function(require,module,exports){
+},{"assert":28,"wayfarer":54}],42:[function(require,module,exports){
 var assert = require('assert')
 
 var hasWindow = typeof window !== 'undefined'
@@ -6666,7 +7740,7 @@ NanoScheduler.prototype.setTimeout = function (cb) {
 
 module.exports = createScheduler
 
-},{"assert":26}],41:[function(require,module,exports){
+},{"assert":28}],43:[function(require,module,exports){
 var scheduler = require('nanoscheduler')()
 var assert = require('assert')
 
@@ -6716,7 +7790,7 @@ function noop (cb) {
   }
 }
 
-},{"assert":26,"nanoscheduler":40}],42:[function(require,module,exports){
+},{"assert":28,"nanoscheduler":42}],44:[function(require,module,exports){
 /*
 object-assign
 (c) Sindre Sorhus
@@ -6808,7 +7882,7 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 	return to;
 };
 
-},{}],43:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 var assert = require('assert')
 
 module.exports = objectChangeCallsite
@@ -6845,7 +7919,7 @@ function strip (str) {
   return '\n' + arr.join('\n')
 }
 
-},{"assert":2}],44:[function(require,module,exports){
+},{"assert":2}],46:[function(require,module,exports){
 var scheduler = require('nanoscheduler')()
 var assert = require('assert')
 
@@ -6905,7 +7979,7 @@ function onPerformance (cb) {
   }
 }
 
-},{"assert":26,"nanoscheduler":40}],45:[function(require,module,exports){
+},{"assert":28,"nanoscheduler":42}],47:[function(require,module,exports){
 module.exports = plucker
 
 function plucker(path, object) {
@@ -6942,7 +8016,7 @@ function pluck(path) {
   }
 }
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 module.exports = prettierBytes
 
 function prettierBytes (num) {
@@ -6974,7 +8048,7 @@ function prettierBytes (num) {
   }
 }
 
-},{}],47:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -7160,7 +8234,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],48:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict'
 
 /**
@@ -7189,7 +8263,7 @@ module.exports = function removeItems (arr, startIdx, removeCount) {
   arr.length = len
 }
 
-},{}],49:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 module.exports = scrollToAnchor
 
 function scrollToAnchor (anchor, options) {
@@ -7201,7 +8275,7 @@ function scrollToAnchor (anchor, options) {
   }
 }
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 var fastSafeStringify = require('fast-safe-stringify')
 var copy = require('copy-text-to-clipboard')
 
@@ -7219,7 +8293,7 @@ function stateCopy (obj) {
 module.exports = stateCopy
 
 
-},{"copy-text-to-clipboard":20,"fast-safe-stringify":23}],51:[function(require,module,exports){
+},{"copy-text-to-clipboard":20,"fast-safe-stringify":23}],53:[function(require,module,exports){
 var assert = require('assert')
 
 module.exports = getAllRoutes
@@ -7256,7 +8330,7 @@ function getAllRoutes (router) {
   return transform(tree)
 }
 
-},{"assert":2}],52:[function(require,module,exports){
+},{"assert":2}],54:[function(require,module,exports){
 var assert = require('assert')
 var trie = require('./trie')
 
@@ -7335,7 +8409,7 @@ function Wayfarer (dft) {
   }
 }
 
-},{"./trie":53,"assert":2}],53:[function(require,module,exports){
+},{"./trie":55,"assert":2}],55:[function(require,module,exports){
 var mutate = require('xtend/mutable')
 var assert = require('assert')
 var xtend = require('xtend')
@@ -7473,7 +8547,7 @@ Trie.prototype.mount = function (route, trie) {
   }
 }
 
-},{"assert":2,"xtend":54,"xtend/mutable":55}],54:[function(require,module,exports){
+},{"assert":2,"xtend":56,"xtend/mutable":57}],56:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -7494,7 +8568,7 @@ function extend() {
     return target
 }
 
-},{}],55:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
