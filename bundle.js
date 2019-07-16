@@ -23,7 +23,7 @@ ac(nanohtml0, ["+"])
   }
 }
 
-function option (item, prop, val) {
+function option (item, prop, val, valLabel) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
       var sa = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js')
@@ -32,10 +32,10 @@ nanohtml0.setAttribute("value", arguments[0])
 sa(nanohtml0, arguments[2], arguments[1])
 ac(nanohtml0, [arguments[3]])
       return nanohtml0
-    }(val,item[prop] === val ? 'selected' : '',item[prop] === val ? 'selected' : '',val))
+    }(val,item[prop] === val ? 'selected' : '',item[prop] === val ? 'selected' : '',valLabel || val))
 }
 
-function renderCodeItem (emit, item, indexArr, prevItem) {
+function renderCodeItem (emit, item, indexArr, prevItem, colors) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createElement("div")
@@ -47,7 +47,7 @@ ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n      
 ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[5],"\n      "])
 ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
       return nanohtml2
-    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'if'),prevItem && ['if', 'else if'].includes(prevItem.action) ? option(item, 'action', 'else if') : '',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
+    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'repeat'),'',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
 
   function remove () {
     emit('removeCodeItem', indexArr)
@@ -65,20 +65,35 @@ ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
     }
   }
 
+  function setValue2 (indexArr) {
+    return (e) => {
+      emit('updateValue2', indexArr, e.target.value)
+    }
+  }
+
+  function renderColorSelect (item, indexArr, prop, cb) {
+    return (function () {
+      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var nanohtml0 = document.createElement("select")
+nanohtml0["oninput"] = arguments[0]
+ac(nanohtml0, ["\n        ",arguments[1],"\n      "])
+      return nanohtml0
+    }(cb(indexArr),colors.map(color => {
+          return option(item, prop, color.id, color.name)
+        })))
+  }
+
   function optionsFor (item, indexArr) {
     if (item.action === 'set color') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml2 = document.createDocumentFragment()
-var nanohtml0 = document.createElement("select")
-nanohtml0["oninput"] = arguments[0]
-ac(nanohtml0, ["\n        ",arguments[1],"\n        ",arguments[2],"\n        ",arguments[3],"\n      "])
-var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[4]
-ac(nanohtml1, ["-"])
-ac(nanohtml2, [nanohtml0,"\n      ",nanohtml1,"\n      "])
-      return nanohtml2
-    }(setValue(indexArr),option(item, 'value', 'red'),option(item, 'value', 'green'),option(item, 'value', 'blue'),remove))
+      var nanohtml1 = document.createDocumentFragment()
+var nanohtml0 = document.createElement("button")
+nanohtml0["onclick"] = arguments[0]
+ac(nanohtml0, ["-"])
+ac(nanohtml1, [arguments[1],"\n        ",nanohtml0,"\n      "])
+      return nanohtml1
+    }(remove,renderColorSelect(item, indexArr, 'value', setValue)))
     } else if (item.action === 'delay') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
@@ -99,17 +114,38 @@ ac(nanohtml2, [nanohtml0,"\n        ",nanohtml1,"\n      "])
       var nanohtml3 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
-ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n          ",arguments[4],"\n          ",arguments[5],"\n        "])
+ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n        "])
 var nanohtml1 = document.createElement("button")
-nanohtml1["onclick"] = arguments[6]
+nanohtml1["onclick"] = arguments[4]
 ac(nanohtml1, ["-"])
 var nanohtml2 = document.createElement("div")
 nanohtml2.setAttribute("class", "block if")
-ac(nanohtml2, ["\n          ",arguments[7],"\n          ",arguments[8],"\n        "])
+ac(nanohtml2, ["\n          ",arguments[5],"\n          ",arguments[6],"\n        "])
+ac(nanohtml3, [nanohtml0,"\n        ",arguments[7],"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
+      return nanohtml3
+    }(setValue(indexArr),option(item, 'value', 'color is'),option(item, 'value', 'light is off'),option(item, 'value', 'light is on'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
+          }),item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : ''))
+    } else if (item.action === 'repeat') {
+      return (function () {
+      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var nanohtml3 = document.createDocumentFragment()
+var nanohtml0 = document.createElement("input")
+nanohtml0.setAttribute("type", "number")
+nanohtml0.setAttribute("step", "1")
+nanohtml0.setAttribute("min", "1")
+nanohtml0["oninput"] = arguments[0]
+nanohtml0.setAttribute("value", arguments[1])
+var nanohtml1 = document.createElement("button")
+nanohtml1["onclick"] = arguments[2]
+ac(nanohtml1, ["-"])
+var nanohtml2 = document.createElement("div")
+nanohtml2.setAttribute("class", "block repeat")
+ac(nanohtml2, ["\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
 ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
       return nanohtml3
-    }(setValue(indexArr),option(item, 'value', 'touch'),option(item, 'value', 'color is red'),option(item, 'value', 'color is green'),option(item, 'value', 'color is blue'),option(item, 'value', 'color is none'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
-            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null)
+    }(setValue(indexArr),item.value,remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
           })))
     }
   }
@@ -136,11 +172,11 @@ ac(nanohtml4, ["Clear"])
 ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n    "])
       return nanohtml5
     }(state.brightness,renderInsert([-1], emit),state.code.map((item, i) => {
-          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null)
+          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
         }),run,clear))
 
   function run (e) {
-    const code = genCode(state.code)
+    const code = genCode(state.code, state.colors)
     console.log(code)
   }
 
@@ -153,19 +189,35 @@ function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
   state.brightness = stateBright ? Number(stateBright) : 10
+  state.colors = [
+    { id: 'a', name: 'electric purple', value: '187, 0, 255' },
+    { id: 'b', name: 'carmine red', value: '255, 0, 55' },
+    { id: 'c', name: 'fluorescent orange', value: '255, 195, 0' },
+    { id: 'd', name: 'turquoise blue', value: '0, 255, 195' },
+    { id: 'e', name: 'spring green', value: '0, 255, 144' }
+  ]
   state.code = stateCode ? JSON.parse(stateCode) : [
-    { action: 'set color', value: 'red' }
+    { action: 'set color', value: 'a' }
   ]
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
+    if (value === 'color is') {
+      items[index].value2 = 'a'
+    }
+    emitter.emit('render')
+  })
+
+  emitter.on('updateValue2', function (indexArr, value2) {
+    const { items, index } = getItem(indexArr)
+    items[index].value2 = value2
     emitter.emit('render')
   })
 
   emitter.on('clear', function () {
     state.brightness = 10
     state.code = [
-      { action: 'set color', value: 'red' }
+      { action: 'set color', value: 'a' }
     ]
     emitter.emit('render')
   })
@@ -184,20 +236,25 @@ function globalStore (state, emitter) {
     const { items, index } = getItem(indexArr)
     const item = items[index]
     item.action = action
-    if (action === 'setColor') {
-      item.value = 'red'
+    if (action === 'set color') {
+      item.value = 'a'
     } else if (action === 'delay') {
       item.value = '1'
     } else if (action === 'if' || action === 'else if') {
-      item.value = 'touch'
-      item.items = [ {action: 'set color', value: 'red' } ]
+      item.value = 'color is'
+      item.value2 = 'a'
+      item.items = [{ action: 'set color', value: 'a' }]
+    } else if (action === 'repeat') {
+      item.value = '1'
+      item.items = [{ action: 'set color', value: 'a' }]
     }
     emitter.emit('render')
+    setTimeout(() => { emitter.emit('render') }, 100)
   })
 
   emitter.on('insertCodeItem', function (indexArr) {
     const { items, index } = getItem(indexArr)
-    items.splice(index + 1, 0, { action: 'set color', value: 'red' })
+    items.splice(index + 1, 0, { action: 'set color', value: 'a' })
     emitter.emit('render')
   })
 
@@ -215,8 +272,9 @@ function globalStore (state, emitter) {
   })
 }
 
-function genCode (items) {
-  const loopCode = genCodeHelp(items)
+function genCode (items, colors) {
+  const seed = { value: 0 }
+  const loopCode = genCodeHelp(items, colors, seed)
     return `
 #include <Adafruit_NeoPixel.h>
 
@@ -240,6 +298,10 @@ bool touchConsumed = false;
 int currentR = 0;
 int currentG = 0;
 int currentB = 0;
+int touchCapThresholdTop = 150;
+int touchCapThresholdBottom = 50;
+int touchTimeout = 500;
+unsigned long lastTouched;
 
 //uint32_t colors[] = {pixels.Color(255,   0,   0), pixels.Color(  0, 255,   0), pixels.Color(  0,   0, 255)};
 
@@ -254,8 +316,8 @@ void setup() {
 void loop() {
   val = analogRead(analogPin);
   //  Serial.println(val);
-  bool touched = (val > 100) && !touchConsumed;
-  if (val < 80) {
+  bool touched = (val > touchCapThresholdTop) && !touchConsumed && (millis() - touchTimeout) > lastTouched;
+  if (val < touchCapThresholdBottom) {
     touchConsumed = false;
   }
   ${loopCode}
@@ -282,25 +344,26 @@ bool checkColor(int r, int g, int b) {
     `
 }
 
-function genCodeHelp (items) {
+function genCodeHelp (items, colors, seed) {
   return items.map(item => {
     if (item.action === 'if' || item.action === 'else if') {
       let condition
       if (item.value === 'touch') {
         condition = 'touched'
-      } else if (item.value === 'color is red') {
-        condition = 'checkColor(255, 0, 0)'
-      } else if (item.value === 'color is green') {
-        condition = 'checkColor(0, 255, 0)'
-      } else if (item.value === 'color is blue') {
-        condition = 'checkColor(0, 0, 255)'
-      } else if (item.value === 'color is none') {
+      } else if (item.value === 'color is') {
+        const color = colors.find(c => {
+          return c.id === item.value2
+        }).value
+        condition = `checkColor(${color})`
+      } else if (item.value === 'light is off') {
         condition = 'checkColor(0, 0, 0)'
+      } else if (item.value === 'light is on') {
+        condition = '!checkColor(0, 0, 0)'
       }
       return `
         ${item.action === 'if' ? 'if' : 'else if'} (${condition}) {
-          ${item.value === 'touch' ? 'touchConsumed = true;' : ''}
-          ${genCodeHelp(item.items)}
+          ${item.value === 'touch' ? 'touchConsumed = true; lastTouched = millis();' : ''}
+          ${genCodeHelp(item.items, colors, seed)}
         }
       `
     } else if (item.action === 'delay') {
@@ -309,16 +372,24 @@ function genCodeHelp (items) {
         delay(${ms});
       `
     } else if (item.action === 'set color') {
-      let color
-      if (item.value === 'red') {
-        color = '255, 0, 0'
-      } else if (item.value === 'green') {
-        color = '0, 255, 0'
-      } else if (item.value === 'blue') {
-        color = '0, 0, 255'
-      }
+      const color = colors.filter(c => {
+        console.log(c.id, item.value)
+        return c.id === item.value
+      })[0].value
       return `
         setColor(${color});
+      `
+    } else if (item.action === 'repeat') {
+      const count = Number(item.value)
+      let counter = 'i'
+      for (let i = 0; i < seed.value; i++) {
+        counter = `${counter}i`
+      }
+      seed.value++
+      return `
+        for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
+          ${genCodeHelp(item.items, colors, seed)}
+        }
       `
     }
   }).join('')

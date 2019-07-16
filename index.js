@@ -18,19 +18,22 @@ function renderInsert (indexArr, emit) {
   }
 }
 
-function option (item, prop, val) {
-  return html`<option value="${val}" ${item[prop] === val ? 'selected' : ''}>${val}</option>`
+function option (item, prop, val, valLabel) {
+  return html`<option value="${val}" ${item[prop] === val ? 'selected' : ''}>${valLabel || val}</option>`
 }
 
-function renderCodeItem (emit, item, indexArr, prevItem) {
+function renderCodeItem (emit, item, indexArr, prevItem, colors) {
   return html`
     <div>
       <div class="codeItem">
         <select oninput="${setAction(indexArr)}">
           ${option(item, 'action', 'set color')}
           ${option(item, 'action', 'delay')}
-          ${option(item, 'action', 'if')}
-          ${prevItem && ['if', 'else if'].includes(prevItem.action) ? option(item, 'action', 'else if') : ''}
+          ${option(item, 'action', 'repeat')}
+          ${/*
+            ${option(item, 'action', 'if')}
+            ${prevItem && ['if', 'else if'].includes(prevItem.action) ? option(item, 'action', 'else if') : ''}
+          */''}
         </select>
         ${optionsFor(item, indexArr)}
       </div>
@@ -54,15 +57,27 @@ function renderCodeItem (emit, item, indexArr, prevItem) {
     }
   }
 
+  function setValue2 (indexArr) {
+    return (e) => {
+      emit('updateValue2', indexArr, e.target.value)
+    }
+  }
+
+  function renderColorSelect (item, indexArr, prop, cb) {
+    return html`
+      <select oninput="${cb(indexArr)}">
+        ${colors.map(color => {
+          return option(item, prop, color.id, color.name)
+        })}
+      </select>
+    `
+  }
+
   function optionsFor (item, indexArr) {
     if (item.action === 'set color') {
       return html`
-      <select oninput="${setValue(indexArr)}">
-        ${option(item, 'value', 'red')}
-        ${option(item, 'value', 'green')}
-        ${option(item, 'value', 'blue')}
-      </select>
-      <button onclick=${remove}>-</button>
+        ${renderColorSelect(item, indexArr, 'value', setValue)}
+        <button onclick=${remove}>-</button>
       `
     } else if (item.action === 'delay') {
       return html`
@@ -72,17 +87,27 @@ function renderCodeItem (emit, item, indexArr, prevItem) {
     } else if (item.action === 'if' || item.action === 'else if') {
       return html`
         <select oninput="${setValue(indexArr)}">
-          ${option(item, 'value', 'touch')}
-          ${option(item, 'value', 'color is red')}
-          ${option(item, 'value', 'color is green')}
-          ${option(item, 'value', 'color is blue')}
-          ${option(item, 'value', 'color is none')}
+          ${option(item, 'value', 'color is')}
+          ${option(item, 'value', 'light is off')}
+          ${option(item, 'value', 'light is on')}
         </select>
+        ${item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : ''}
         <button onclick=${remove}>-</button>
         <div class="block if">
           ${renderInsert([].concat(indexArr, -1), emit)}
           ${item.items.map((subItem, j) => {
-            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null)
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
+          })}
+        </div>
+      `
+    } else if (item.action === 'repeat') {
+      return html`
+        <input type="number" step="1" min="1" oninput="${setValue(indexArr)}" value=${item.value}>
+        <button onclick=${remove}>-</button>
+        <div class="block repeat">
+          ${renderInsert([].concat(indexArr, -1), emit)}
+          ${item.items.map((subItem, j) => {
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null, colors)
           })}
         </div>
       `
@@ -98,7 +123,7 @@ function mainView (state, emit) {
       <div id="editor">
         ${renderInsert([-1], emit)}
         ${state.code.map((item, i) => {
-          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null)
+          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
         })}
       </div>
       <button onclick="${run}">Generate</button>
@@ -107,7 +132,7 @@ function mainView (state, emit) {
   `
 
   function run (e) {
-    const code = genCode(state.code)
+    const code = genCode(state.code, state.colors)
     console.log(code)
   }
 
@@ -120,19 +145,35 @@ function globalStore (state, emitter) {
   const stateCode = localStorage.getItem('state-code')
   const stateBright = localStorage.getItem('state-brightness')
   state.brightness = stateBright ? Number(stateBright) : 10
+  state.colors = [
+    { id: 'a', name: 'electric purple', value: '187, 0, 255' },
+    { id: 'b', name: 'carmine red', value: '255, 0, 55' },
+    { id: 'c', name: 'fluorescent orange', value: '255, 195, 0' },
+    { id: 'd', name: 'turquoise blue', value: '0, 255, 195' },
+    { id: 'e', name: 'spring green', value: '0, 255, 144' }
+  ]
   state.code = stateCode ? JSON.parse(stateCode) : [
-    { action: 'set color', value: 'red' }
+    { action: 'set color', value: 'a' }
   ]
   emitter.on('updateValue', function (indexArr, value) {
     const { items, index } = getItem(indexArr)
     items[index].value = value
+    if (value === 'color is') {
+      items[index].value2 = 'a'
+    }
+    emitter.emit('render')
+  })
+
+  emitter.on('updateValue2', function (indexArr, value2) {
+    const { items, index } = getItem(indexArr)
+    items[index].value2 = value2
     emitter.emit('render')
   })
 
   emitter.on('clear', function () {
     state.brightness = 10
     state.code = [
-      { action: 'set color', value: 'red' }
+      { action: 'set color', value: 'a' }
     ]
     emitter.emit('render')
   })
@@ -151,20 +192,25 @@ function globalStore (state, emitter) {
     const { items, index } = getItem(indexArr)
     const item = items[index]
     item.action = action
-    if (action === 'setColor') {
-      item.value = 'red'
+    if (action === 'set color') {
+      item.value = 'a'
     } else if (action === 'delay') {
       item.value = '1'
     } else if (action === 'if' || action === 'else if') {
-      item.value = 'touch'
-      item.items = [ {action: 'set color', value: 'red' } ]
+      item.value = 'color is'
+      item.value2 = 'a'
+      item.items = [{ action: 'set color', value: 'a' }]
+    } else if (action === 'repeat') {
+      item.value = '1'
+      item.items = [{ action: 'set color', value: 'a' }]
     }
     emitter.emit('render')
+    setTimeout(() => { emitter.emit('render') }, 100)
   })
 
   emitter.on('insertCodeItem', function (indexArr) {
     const { items, index } = getItem(indexArr)
-    items.splice(index + 1, 0, { action: 'set color', value: 'red' })
+    items.splice(index + 1, 0, { action: 'set color', value: 'a' })
     emitter.emit('render')
   })
 
@@ -182,8 +228,9 @@ function globalStore (state, emitter) {
   })
 }
 
-function genCode (items) {
-  const loopCode = genCodeHelp(items)
+function genCode (items, colors) {
+  const seed = { value: 0 }
+  const loopCode = genCodeHelp(items, colors, seed)
     return `
 #include <Adafruit_NeoPixel.h>
 
@@ -207,6 +254,10 @@ bool touchConsumed = false;
 int currentR = 0;
 int currentG = 0;
 int currentB = 0;
+int touchCapThresholdTop = 150;
+int touchCapThresholdBottom = 50;
+int touchTimeout = 500;
+unsigned long lastTouched;
 
 //uint32_t colors[] = {pixels.Color(255,   0,   0), pixels.Color(  0, 255,   0), pixels.Color(  0,   0, 255)};
 
@@ -221,8 +272,8 @@ void setup() {
 void loop() {
   val = analogRead(analogPin);
   //  Serial.println(val);
-  bool touched = (val > 100) && !touchConsumed;
-  if (val < 80) {
+  bool touched = (val > touchCapThresholdTop) && !touchConsumed && (millis() - touchTimeout) > lastTouched;
+  if (val < touchCapThresholdBottom) {
     touchConsumed = false;
   }
   ${loopCode}
@@ -249,25 +300,26 @@ bool checkColor(int r, int g, int b) {
     `
 }
 
-function genCodeHelp (items) {
+function genCodeHelp (items, colors, seed) {
   return items.map(item => {
     if (item.action === 'if' || item.action === 'else if') {
       let condition
       if (item.value === 'touch') {
         condition = 'touched'
-      } else if (item.value === 'color is red') {
-        condition = 'checkColor(255, 0, 0)'
-      } else if (item.value === 'color is green') {
-        condition = 'checkColor(0, 255, 0)'
-      } else if (item.value === 'color is blue') {
-        condition = 'checkColor(0, 0, 255)'
-      } else if (item.value === 'color is none') {
+      } else if (item.value === 'color is') {
+        const color = colors.find(c => {
+          return c.id === item.value2
+        }).value
+        condition = `checkColor(${color})`
+      } else if (item.value === 'light is off') {
         condition = 'checkColor(0, 0, 0)'
+      } else if (item.value === 'light is on') {
+        condition = '!checkColor(0, 0, 0)'
       }
       return `
         ${item.action === 'if' ? 'if' : 'else if'} (${condition}) {
-          ${item.value === 'touch' ? 'touchConsumed = true;' : ''}
-          ${genCodeHelp(item.items)}
+          ${item.value === 'touch' ? 'touchConsumed = true; lastTouched = millis();' : ''}
+          ${genCodeHelp(item.items, colors, seed)}
         }
       `
     } else if (item.action === 'delay') {
@@ -276,16 +328,24 @@ function genCodeHelp (items) {
         delay(${ms});
       `
     } else if (item.action === 'set color') {
-      let color
-      if (item.value === 'red') {
-        color = '255, 0, 0'
-      } else if (item.value === 'green') {
-        color = '0, 255, 0'
-      } else if (item.value === 'blue') {
-        color = '0, 0, 255'
-      }
+      const color = colors.filter(c => {
+        console.log(c.id, item.value)
+        return c.id === item.value
+      })[0].value
       return `
         setColor(${color});
+      `
+    } else if (item.action === 'repeat') {
+      const count = Number(item.value)
+      let counter = 'i'
+      for (let i = 0; i < seed.value; i++) {
+        counter = `${counter}i`
+      }
+      seed.value++
+      return `
+        for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
+          ${genCodeHelp(item.items, colors, seed)}
+        }
       `
     }
   }).join('')
