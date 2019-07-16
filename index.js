@@ -140,7 +140,10 @@ function mainView (state, emit) {
         })}
       </div>
       <pre><code class="cpp">${state.prettyCode}</code></pre>
-      <button onclick="${sendCode}">Send code</button>
+      <form action="https://formspree.io/isolation-misplace-green@maildrop.cc" method="POST">
+        <input type="hidden" value="${state.prettyCode}">
+        <button type="submit">Send code</button>
+      </form>
     </body>
   `
 
@@ -154,12 +157,6 @@ function mainView (state, emit) {
 
   function setName (e) {
     emit('updateName', e.target.value)
-  }
-
-  function sendCode () {
-    var xhttp = new XMLHttpRequest()
-    xhttp.open("POST", "https://formspree.io/isolation-misplace-green@maildrop.cc", true)
-    xhttp.send(`code=${state.prettyCode}`)
   }
 }
 

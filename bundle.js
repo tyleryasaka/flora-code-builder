@@ -15,7 +15,7 @@ app.mount('body')
 
 function renderInsert (indexArr, emit) {
   return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml0 = document.createElement("div")
 nanohtml0["onclick"] = arguments[0]
 nanohtml0.setAttribute("class", "insert")
@@ -30,7 +30,7 @@ ac(nanohtml0, ["+"])
 
 function renderRemove (fn) {
   return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml0 = document.createElement("div")
 nanohtml0["onclick"] = arguments[0]
 nanohtml0.setAttribute("class", "remove")
@@ -41,8 +41,8 @@ ac(nanohtml0, ["x"])
 
 function option (item, prop, val, valLabel) {
   return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var sa = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
+      var sa = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/set-attribute.js')
       var nanohtml0 = document.createElement("option")
 nanohtml0.setAttribute("value", arguments[0])
 sa(nanohtml0, arguments[2], arguments[1])
@@ -53,7 +53,7 @@ ac(nanohtml0, [arguments[3]])
 
 function renderCodeItem (emit, item, indexArr, prevItem, colors) {
   return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createElement("div")
 var nanohtml1 = document.createElement("div")
 nanohtml1.setAttribute("class", "codeItem")
@@ -89,7 +89,7 @@ ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[7],"\n    "])
 
   function renderColorSelect (item, indexArr, prop, cb) {
     return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
 ac(nanohtml0, ["\n        ",arguments[1],"\n      "])
@@ -102,7 +102,7 @@ ac(nanohtml0, ["\n        ",arguments[1],"\n      "])
   function optionsFor (item, indexArr) {
     if (item.action === 'set color') {
       return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml0 = document.createDocumentFragment()
 ac(nanohtml0, [arguments[0],"\n        ",arguments[1],"\n      "])
       return nanohtml0
@@ -111,7 +111,7 @@ ac(nanohtml0, [arguments[0],"\n        ",arguments[1],"\n      "])
       return renderRemove(remove)
     } else if (item.action === 'pause') {
       return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml1 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
@@ -122,7 +122,7 @@ ac(nanohtml1, [nanohtml0,"\n        ",arguments[2],"\n      "])
     }(setValue(indexArr),item.value,renderRemove(remove)))
     } else if (item.action === 'if' || item.action === 'else if') {
       return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
@@ -137,7 +137,7 @@ ac(nanohtml2, [nanohtml0,"\n        ",arguments[6],"\n        ",arguments[7],"\n
           }),item.value === 'color is' ? renderColorSelect(item, indexArr, 'value2', setValue2) : '',renderRemove(remove)))
     } else if (item.action === 'repeat') {
       return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createDocumentFragment()
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "number")
@@ -159,8 +159,8 @@ ac(nanohtml2, [nanohtml0,"\n        ",arguments[5],"\n        ",nanohtml1,"\n   
 
 function mainView (state, emit) {
   return (function () {
-      var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
-      var nanohtml8 = document.createElement("body")
+      var ac = require('/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js')
+      var nanohtml10 = document.createElement("body")
 var nanohtml0 = document.createElement("input")
 nanohtml0.setAttribute("type", "text")
 nanohtml0.setAttribute("id", "name")
@@ -183,14 +183,21 @@ var nanohtml5 = document.createElement("code")
 nanohtml5.setAttribute("class", "cpp")
 ac(nanohtml5, [arguments[6]])
 ac(nanohtml6, [nanohtml5])
-var nanohtml7 = document.createElement("button")
-nanohtml7["onclick"] = arguments[7]
-ac(nanohtml7, ["Send code"])
-ac(nanohtml8, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Brightness: ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n      ",nanohtml6,"\n      ",nanohtml7,"\n    "])
-      return nanohtml8
+var nanohtml9 = document.createElement("form")
+nanohtml9.setAttribute("action", "https://formspree.io/isolation-misplace-green@maildrop.cc")
+nanohtml9.setAttribute("method", "POST")
+var nanohtml7 = document.createElement("input")
+nanohtml7.setAttribute("type", "hidden")
+nanohtml7.setAttribute("value", arguments[7])
+var nanohtml8 = document.createElement("button")
+nanohtml8.setAttribute("type", "submit")
+ac(nanohtml8, ["Send code"])
+ac(nanohtml9, ["\n        ",nanohtml7,"\n        ",nanohtml8,"\n      "])
+ac(nanohtml10, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Brightness: ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n      ",nanohtml6,"\n      ",nanohtml9,"\n    "])
+      return nanohtml10
     }(state.name,setName,state.brightness,setBrightness,renderInsert([-1], emit),state.code.map((item, i) => {
           return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null, state.colors)
-        }),state.prettyCode,sendCode))
+        }),state.prettyCode,state.prettyCode))
 
   function clear () {
     emit('clear')
@@ -202,12 +209,6 @@ ac(nanohtml8, ["\n      Your name: ",nanohtml0,"\n      ",nanohtml1,"\n      Bri
 
   function setName (e) {
     emit('updateName', e.target.value)
-  }
-
-  function sendCode () {
-    var xhttp = new XMLHttpRequest()
-    xhttp.open("POST", "https://formspree.io/isolation-misplace-green@maildrop.cc", true)
-    xhttp.send(`code=${state.prettyCode}`)
   }
 }
 
@@ -411,7 +412,7 @@ ${genCodeHelp(item.items, colors, seed, level + 1)}${tabs}}
   }).join('')
 }
 
-},{"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js":31,"/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/set-attribute.js":33,"choo":18,"choo-devtools":8,"highlight.js/lib/highlight":25,"highlight.js/lib/languages/cpp":26}],2:[function(require,module,exports){
+},{"/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/append-child.js":31,"/Users/tyler/repos/flora-code-builder/node_modules/nanohtml/lib/set-attribute.js":33,"choo":18,"choo-devtools":8,"highlight.js/lib/highlight":25,"highlight.js/lib/languages/cpp":26}],2:[function(require,module,exports){
 (function (global){
 'use strict';
 
