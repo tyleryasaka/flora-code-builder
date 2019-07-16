@@ -22,7 +22,7 @@ function option (item, prop, val) {
   return html`<option value="${val}" ${item[prop] === val ? 'selected' : ''}>${val}</option>`
 }
 
-function renderCodeItem (emit, item, indexArr) {
+function renderCodeItem (emit, item, indexArr, prevItem) {
   return html`
     <div>
       <div class="codeItem">
@@ -30,7 +30,7 @@ function renderCodeItem (emit, item, indexArr) {
           ${option(item, 'action', 'set color')}
           ${option(item, 'action', 'delay')}
           ${option(item, 'action', 'if')}
-          ${option(item, 'action', 'else if')}
+          ${prevItem && ['if', 'else if'].includes(prevItem.action) ? option(item, 'action', 'else if') : ''}
         </select>
         ${optionsFor(item, indexArr)}
       </div>
@@ -82,7 +82,7 @@ function renderCodeItem (emit, item, indexArr) {
         <div class="block if">
           ${renderInsert([].concat(indexArr, -1), emit)}
           ${item.items.map((subItem, j) => {
-            return renderCodeItem(emit, subItem, [].concat(indexArr, j))
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null)
           })}
         </div>
       `
@@ -98,7 +98,7 @@ function mainView (state, emit) {
       <div id="editor">
         ${renderInsert([-1], emit)}
         ${state.code.map((item, i) => {
-          return renderCodeItem(emit, item, [i], 0)
+          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null)
         })}
       </div>
       <button onclick="${run}">Generate</button>

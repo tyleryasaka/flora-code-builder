@@ -35,7 +35,7 @@ ac(nanohtml0, [arguments[3]])
     }(val,item[prop] === val ? 'selected' : '',item[prop] === val ? 'selected' : '',val))
 }
 
-function renderCodeItem (emit, item, indexArr) {
+function renderCodeItem (emit, item, indexArr, prevItem) {
   return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
       var nanohtml2 = document.createElement("div")
@@ -47,7 +47,7 @@ ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n      
 ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[5],"\n      "])
 ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
       return nanohtml2
-    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'if'),option(item, 'action', 'else if'),optionsFor(item, indexArr),renderInsert(indexArr, emit)))
+    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'delay'),option(item, 'action', 'if'),prevItem && ['if', 'else if'].includes(prevItem.action) ? option(item, 'action', 'else if') : '',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
 
   function remove () {
     emit('removeCodeItem', indexArr)
@@ -109,7 +109,7 @@ ac(nanohtml2, ["\n          ",arguments[7],"\n          ",arguments[8],"\n      
 ac(nanohtml3, [nanohtml0,"\n        ",nanohtml1,"\n        ",nanohtml2,"\n      "])
       return nanohtml3
     }(setValue(indexArr),option(item, 'value', 'touch'),option(item, 'value', 'color is red'),option(item, 'value', 'color is green'),option(item, 'value', 'color is blue'),option(item, 'value', 'color is none'),remove,renderInsert([].concat(indexArr, -1), emit),item.items.map((subItem, j) => {
-            return renderCodeItem(emit, subItem, [].concat(indexArr, j))
+            return renderCodeItem(emit, subItem, [].concat(indexArr, j), (j > 0) ? item.items[j - 1] : null)
           })))
     }
   }
@@ -136,7 +136,7 @@ ac(nanohtml4, ["Clear"])
 ac(nanohtml5, ["\n      Brightness: ",nanohtml0,"\n      ",nanohtml1,"\n      ",nanohtml2,"\n      ",nanohtml3,"\n      ",nanohtml4,"\n    "])
       return nanohtml5
     }(state.brightness,renderInsert([-1], emit),state.code.map((item, i) => {
-          return renderCodeItem(emit, item, [i], 0)
+          return renderCodeItem(emit, item, [i], (i > 0) ? state.code[i - 1] : null)
         }),run,clear))
 
   function run (e) {
@@ -255,7 +255,7 @@ void loop() {
   val = analogRead(analogPin);
   //  Serial.println(val);
   bool touched = (val > 100) && !touchConsumed;
-  if (val < 100) {
+  if (val < 80) {
     touchConsumed = false;
   }
   ${loopCode}
