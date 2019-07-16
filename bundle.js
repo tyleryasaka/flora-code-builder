@@ -59,11 +59,11 @@ var nanohtml1 = document.createElement("div")
 nanohtml1.setAttribute("class", "codeItem")
 var nanohtml0 = document.createElement("select")
 nanohtml0["oninput"] = arguments[0]
-ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n          ",arguments[4],"\n        "])
-ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[5],"\n      "])
-ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[6],"\n    "])
+ac(nanohtml0, ["\n          ",arguments[1],"\n          ",arguments[2],"\n          ",arguments[3],"\n          ",arguments[4],"\n          ",arguments[5],"\n        "])
+ac(nanohtml1, ["\n        ",nanohtml0,"\n        ",arguments[6],"\n      "])
+ac(nanohtml2, ["\n      ",nanohtml1,"\n      ",arguments[7],"\n    "])
       return nanohtml2
-    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'pause'),option(item, 'action', 'repeat'),'',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
+    }(setAction(indexArr),option(item, 'action', 'set color'),option(item, 'action', 'pause'),option(item, 'action', 'repeat'),option(item, 'action', 'light off'),'',optionsFor(item, indexArr),renderInsert(indexArr, emit)))
 
   function remove () {
     emit('removeCodeItem', indexArr)
@@ -107,6 +107,8 @@ ac(nanohtml0, ["\n        ",arguments[1],"\n      "])
 ac(nanohtml0, [arguments[0],"\n        ",arguments[1],"\n      "])
       return nanohtml0
     }(renderColorSelect(item, indexArr, 'value', setValue),renderRemove(remove)))
+    } else if (item.action === 'light off') {
+      return renderRemove(remove)
     } else if (item.action === 'pause') {
       return (function () {
       var ac = require('/Users/tyler/repos/arduino-coder/node_modules/nanohtml/lib/append-child.js')
@@ -302,20 +304,17 @@ function prettify () {
 function genCode (items, colors, brightness) {
   const seed = { value: 0 }
   const loopCode = genCodeHelp(items, colors, seed)
-    return `#include <Adafruit_NeoPixel.h>
+  return `#include <Adafruit_NeoPixel.h>
 #define LED_PIN    6
 #define LED_COUNT 1
 
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 int analogPin = 9;
-int currentR = 0;
-int currentG = 0;
-int currentB = 0;
 
 void setup() {
   Serial.begin(9600);
   pixels.begin();
-  pixels.clear();
+  lightOff();
   pixels.setBrightness(${brightness});
 }
 
@@ -323,22 +322,13 @@ void loop() {
 ${loopCode}}
 
 void setColor(int r, int g, int b) {
-  currentR = r;
-  currentG = g;
-  currentB = b;
   pixels.setPixelColor(0, pixels.Color(r, g, b));
   pixels.show();
 }
 
-void clearPixel() {
-  currentR = 0;
-  currentG = 0;
-  currentB = 0;
+void lightOff() {
   pixels.clear();
-}
-
-bool checkColor(int r, int g, int b) {
-  return currentR == r && currentG == g && currentB == b;
+  pixels.show();
 }`
 }
 
@@ -386,6 +376,8 @@ function genCodeHelp (items, colors, seed, level = 1) {
       return `${tabs}for (int ${counter} = 0; ${counter} < ${count}; ${counter}++) {
 ${genCodeHelp(item.items, colors, seed, level + 1)}${tabs}}
 `
+    } else if (item.action === 'light off') {
+      return `${tabs}lightOff();\n`
     }
   }).join('')
 }
