@@ -361,9 +361,6 @@ void setColor(int r, int g, int b) {
     cR = adjustColor(cR, r);
     cG = adjustColor(cG, g);
     cB = adjustColor(cB, b);
-//    Serial.println(cR);
-//    Serial.println(cG);
-//    Serial.println(cB);
     pixels.setPixelColor(0, pixels.Color(cR, cG, cB));
     pixels.show();
     delay(100);
@@ -383,10 +380,6 @@ int adjustColor(int current, int dest) {
       adjustment = -5;
     }
   }
-//  Serial.println("---");
-//  Serial.println(delta);
-//  Serial.println(adjustment);
-//  Serial.println("---");
   int newVal = current + adjustment;
   if (delta == 0) {
     return dest;
